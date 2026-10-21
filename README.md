@@ -22,7 +22,7 @@ All installers install per user, need no admin rights, and remove cleanly from S
 ## Requirements
 
 - **Any app:** Windows 11 (Tatami also runs on Windows 10).
-- **For the AI features:** an AMD Ryzen AI 300/400/Max PC with the NPU driver and FastFlowLM. Each installer checks your PC and tells you what is missing.
+- **For the AI features:** an AMD Ryzen AI 300/400/Max PC with the NPU driver and FastFlowLM. Each installer checks your PC and tells you what is missing, following poka-yoke (mistake-proofing) principles.
 - **Intel and other PCs:** the apps still install and work in their no-AI mode. LM Studio support exists in Kaizen but has not been tested on Intel.
 
 ## "Windows protected your PC"
