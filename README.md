@@ -35,7 +35,6 @@ Get-FileHash .\Washi-Setup.exe -Algorithm SHA256
 ## Coming later
 
 - **An ergonomics app**, in the area of workplace health: posture, breaks and comfortable working habits.
-- **Tansu** (smart archiver) and **Muda** (process waste analyser) are also in development.
 
 ## Feedback
 
