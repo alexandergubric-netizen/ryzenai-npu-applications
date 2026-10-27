@@ -1,0 +1,109 @@
+# Images, video and audio. Image helpers keep the originals; ffmpeg is used for video/audio.
+
+## Images
+
+? convert {ext} to {ext2} | convert all {ext} files in {folder} to {ext2} | change {ext} images to {ext2} | turn {ext} into {ext2}
+Get-ChildItem -Path "{{folder}}\*" -File -Include {{ext}} | Convert-Image -Format {{ext2|raw}}
+% ext=images ; ext2=images
+= Writes a {ext2} copy of every {ext} image in {folder}; the originals stay (Sensei helper).
+& folder=.
+
+? convert {file} to {ext} | save {file} as {ext} | change {file} to {ext}
+Convert-Image -Path "{{folder}}\{{file}}" -Format {{ext|raw}}
+% file=images ; ext=images
+= Writes a {ext} copy of {file}; the original stays.
+& folder=.
+
+? resize {file} to {percent} | resize the image {file} to {percent} | resize the photo {file} to {percent} | make {file} {percent} smaller | scale {file} to {percent} | shrink {file} by {percent}
+Resize-Image -Path "{{folder}}\{{file}}" -Percent {{percent}}
+% file=images
+= Writes a resized copy of {file} at {percent}% (name-resized.ext); the original stays.
+& folder=.
+
+? resize {file} to {n} pixels wide | resize {file} to width {n} | make {file} {n} px wide
+Resize-Image -Path "{{folder}}\{{file}}" -Width {{n}}
+% file=images
+= Writes a copy of {file} that is {n} pixels wide; the original stays.
+& folder=.
+
+? resize all {ext} in {folder} to {percent} | shrink all {ext} in {folder} | make all {ext} smaller
+Get-ChildItem -Path "{{folder}}\*" -File -Include {{ext}} | Resize-Image -Percent {{percent}}
+= Writes a {percent}% copy of every {ext} image in {folder}; the originals stay.
+& folder=. ; percent=50
+
+? resize all {ext} in {folder} to {n} pixels wide | resize all {ext} to width {n}
+Get-ChildItem -Path "{{folder}}\*" -File -Include {{ext}} | Resize-Image -Width {{n}}
+= Writes a {n}-pixel-wide copy of every {ext} image in {folder}.
+& folder=.
+
+? size of the image {file} | dimensions of {file} | resolution of {file} | how big is the picture {file}
+Get-ImageInfo -Path "{{folder}}\{{file}}"
+% file=images
+= Shows the width and height of {file}.
+& folder=.
+
+? image sizes in {folder} | dimensions of all {ext} in {folder}
+Get-ChildItem -Path "{{folder}}\*" -File -Include {{ext}} | Get-ImageInfo
+= Shows width and height of every image in {folder}.
+& folder=. ; ext=*.jpg, *.jpeg, *.png, *.gif, *.bmp
+
+? open {file} in paint | edit {file} in paint
+Start-Process mspaint -ArgumentList "`"$((Resolve-Path "{{folder}}\{{file}}").Path)`""
+= Opens {file} in Paint.
+& folder=.
+
+## Video and audio (ffmpeg)
+
+? convert {file} to {ext} | convert the video {file} to {ext} | convert {file} into {ext}
+$in = Get-Item -LiteralPath "{{folder}}\{{file}}"; $out = Join-Path $in.DirectoryName ($in.BaseName + '.{{ext|raw}}'); ffmpeg -hide_banner -loglevel error -stats -y -i $in.FullName $out; Get-Item $out
+% file=videos,music ; ext=videos,music | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Converts {file} to {ext} with ffmpeg; the original stays.
+& folder=.
+
+? extract the audio from {file} | get mp3 from {file} | save the sound of {file} | convert the video {file} to mp3
+$in = Get-Item -LiteralPath "{{folder}}\{{file}}"; $out = Join-Path $in.DirectoryName ($in.BaseName + '.mp3'); ffmpeg -hide_banner -loglevel error -stats -y -i $in.FullName -vn -q:a 2 $out; Get-Item $out | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+% file=videos
+= Saves the soundtrack of {file} as an MP3.
+& folder=.
+
+? compress {file} | make the video {file} smaller | shrink the video {file} | reduce the size of {file}
+$in = Get-Item -LiteralPath "{{folder}}\{{file}}"; $out = Join-Path $in.DirectoryName ($in.BaseName + '-small.mp4'); ffmpeg -hide_banner -loglevel error -stats -y -i $in.FullName -c:v libx264 -crf 28 -preset fast -c:a aac -b:a 128k $out; Get-Item $in, $out | Select-Object Name, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+% file=videos
+= Re-encodes {file} into a smaller MP4 (name-small.mp4); the original stays.
+& folder=.
+
+? cut {file} from {time} | trim the video {file} | first {seconds} of {file}
+$in = Get-Item -LiteralPath "{{folder}}\{{file}}"; $out = Join-Path $in.DirectoryName ($in.BaseName + '-clip' + $in.Extension); ffmpeg -hide_banner -loglevel error -y -ss 0 -t {{seconds}} -i $in.FullName -c copy $out; Get-Item $out | Select-Object FullName
+% file=videos,music
+= Saves the first {seconds} seconds of {file} as name-clip.
+& folder=. ; seconds=30
+
+? length of the video {file} | how long is {file} | duration of {file} | video info {file}
+ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height -of default=noprint_wrappers=1 "{{folder}}\{{file}}"
+% file=videos,music
+= Shows length (seconds), size, codecs and resolution of {file}.
+& folder=.
+
+? total length of {ext} in {folder} | how long are all videos in {folder}
+$s = 0; Get-ChildItem -Path "{{folder}}\*" -File -Include {{ext}} | ForEach-Object { $s += [double](ffprobe -v error -show_entries format=duration -of csv=p=0 $_.FullName) }; [timespan]::FromSeconds($s).ToString('hh\:mm\:ss')
+= Adds up the length of all {ext} files in {folder}.
+& folder=.
+
+? make a gif from {file} | convert {file} to gif
+$in = Get-Item -LiteralPath "{{folder}}\{{file}}"; $out = Join-Path $in.DirectoryName ($in.BaseName + '.gif'); ffmpeg -hide_banner -loglevel error -y -t 10 -i $in.FullName -vf "fps=12,scale=480:-1:flags=lanczos" $out; Get-Item $out | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+% file=videos
+= Turns the first 10 seconds of {file} into a 480-pixel-wide GIF.
+& folder=.
+
+? play {file} | listen to {file} | watch {file}
+Invoke-Item -Path "{{folder}}\{{file}}"
+= Opens {file} in your default player.
+& folder=.
+
+? is ffmpeg installed | ffmpeg version
+ffmpeg -hide_banner -version | Select-Object -First 1
+= Shows the installed ffmpeg version.
+
+? install ffmpeg
+winget install --id Gyan.FFmpeg --exact --accept-source-agreements --accept-package-agreements --disable-interactivity
+= Installs ffmpeg, which Sensei uses for video and audio.

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Washi</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<script>
+  window.WASHI = { token: "__TOKEN__", version: "__VERSION__" };
+  // apply the theme before the first paint
+  try {
+    const s = JSON.parse(localStorage.getItem("washi.theme") || "{}");
+    const t = s.theme === "dark" || (s.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+    document.documentElement.dataset.theme = t;
+    if (s.accent) document.documentElement.dataset.accent = s.accent;
+  } catch (e) {}
+</script>
+</head>
+<body>
+<!-- intro animation -->
+<div id="splash" aria-hidden="true">
+  <div class="splash-stage">
+    <svg class="splash-art" viewBox="0 0 100 100" width="180" height="180">
+      <defs>
+        <linearGradient id="spPaper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1e7d2"/></linearGradient>
+      </defs>
+      <g class="sp-sheet">
+        <path d="M24 9 H63 L80 26 V88 a3 3 0 0 1 -3 3 H24 a3 3 0 0 1 -3 -3 V12 a3 3 0 0 1 3 -3 Z" fill="url(#spPaper)" stroke="#d9cdb3" stroke-width=".8"/>
+        <g class="sp-fibres" stroke="#d8c9a8" stroke-width=".45" fill="none" stroke-linecap="round">
+          <path d="M27 20 q8 3 15 -1"/><path d="M45 31 q6 -2 12 2"/><path d="M28 73 q7 2 13 -2"/><path d="M50 84 q6 -3 11 1"/><path d="M66 36 q5 2 9 -1"/>
+        </g>
+        <path class="sp-fold" d="M63 9 V23 a3 3 0 0 0 3 3 H80 Z" fill="#e7d9bb"/>
+      </g>
+      <path class="sp-stroke1" d="M29 47 C38 41 52 44 72 39" stroke="#27407a" stroke-width="7" fill="none" stroke-linecap="round" pathLength="100"/>
+      <path class="sp-stroke2" d="M30 59 C40 56 50 58 61 55" stroke="#7aa33c" stroke-width="4" fill="none" stroke-linecap="round" pathLength="100"/>
+      <path class="sp-stroke3" d="M30 68 C36 67 41 68 47 66" stroke="#e0a526" stroke-width="3" fill="none" stroke-linecap="round" pathLength="100"/>
+      <g class="sp-seal">
+        <rect x="56" y="63" width="22" height="22" rx="4" fill="#e2452f" transform="rotate(-6 67 74)"/>
+        <path d="M60.5 69 L63.8 80 L67 72.5 L70.2 80 L73.5 69" stroke="#fff6ee" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-6 67 74)"/>
+      </g>
+    </svg>
+    <div class="splash-ink"></div>
+    <div class="splash-word">Washi</div>
+    <div class="splash-tag">PDF, crafted locally</div>
+  </div>
+</div>
+
+<div id="app">
+  <header id="topbar">
+    <button class="brand" id="homeBtn" title="Start page"><span class="logo" data-logo></span><span>Washi</span></button>
+    <div id="tabs" role="tablist"></div>
+    <div class="top-actions">
+      <button class="cmdk" id="paletteBtn" title="Search commands and help (Ctrl+K)"><i data-i="search"></i><span>Search commands…</span><kbd>Ctrl K</kbd></button>
+      <button class="icon-btn ai-btn hidden" id="aiBtn" title="Washi AI (Ctrl+Shift+A)"><i data-i="sparkle"></i><span>AI</span><b class="ai-dot"></b></button>
+      <button class="icon-btn" id="helpBtn" title="Help and guide (F1)"><i data-i="help"></i></button>
+      <button class="icon-btn" id="themeBtn" title="Light / dark theme"><i data-i="moon"></i></button>
+      <button class="icon-btn" id="settingsBtn" title="Settings"><i data-i="settings"></i></button>
+    </div>
+  </header>
+
+  <nav id="ribbon" class="hidden">
+    <div class="ribbon-tabs" role="tablist"></div>
+    <div class="ribbon-body"></div>
+  </nav>
+
+  <main id="main">
+    <!-- start page -->
+    <section id="home">
+      <div class="home-inner">
+        <div class="home-hero">
+          <div class="home-logo" data-logo="lg"></div>
+          <div>
+            <h1>Good to see you.</h1>
+            <p class="muted">Open a PDF, or drop one anywhere in this window.</p>
+          </div>
+        </div>
+        <div class="home-actions">
+          <button class="big-act" data-cmd="file.open"><i data-i="open"></i><b>Open</b><span>PDFs, e-books (EPUB, MOBI, FB2), images</span></button>
+          <button class="big-act" data-cmd="file.new"><i data-i="filePlus"></i><b>Blank PDF</b><span>Start from an empty page</span></button>
+          <button class="big-act" data-cmd="file.merge"><i data-i="layers"></i><b>Combine files</b><span>Merge several into one PDF</span></button>
+          <button class="big-act" data-cmd="file.fromimages"><i data-i="image"></i><b>Images to PDF</b><span>Photos and scans as pages</span></button>
+        </div>
+        <div id="homeAi" class="home-ai hidden"></div>
+        <div class="home-recent-head"><h2>Recent</h2><span class="muted" id="recentCount"></span></div>
+        <div id="recent" class="recent-grid"></div>
+      </div>
+    </section>
+
+    <!-- document workspace -->
+    <section id="work" class="hidden">
+      <div id="rail">
+        <button data-side="thumbs" title="Pages"><i data-i="grid"></i></button>
+        <button data-side="outline" title="Bookmarks"><i data-i="bookmark"></i></button>
+        <button data-side="search" title="Find (Ctrl+F)"><i data-i="search"></i></button>
+        <button data-side="comments" title="Comments"><i data-i="comments"></i></button>
+        <button data-side="attachments" title="Attachments"><i data-i="clip"></i></button>
+        <span class="rail-gap"></span>
+        <button data-side="help" title="Help"><i data-i="help"></i></button>
+      </div>
+      <aside id="side"><div class="side-head"><b id="sideTitle"></b><span class="side-tools" id="sideTools"></span></div><div id="sideBody"></div><div class="side-resize" id="sideResize"></div></aside>
+      <div id="viewerWrap">
+        <div id="viewer" tabindex="0"><div id="pages"></div></div>
+        <div id="floatbar" class="floatbar hidden"></div>
+        <div id="toolHint" class="tool-hint hidden"></div>
+      </div>
+      <aside id="right" class="hidden"><div id="rightBody"></div></aside>
+    </section>
+
+    <div id="drop" class="hidden"><div><i data-i="download"></i><b>Drop to open</b><span id="dropHint">PDFs, e-books (EPUB, MOBI, FB2) or images</span></div></div>
+  </main>
+
+  <footer id="status">
+    <div class="st-left">
+      <span id="stDoc" class="muted"></span>
+    </div>
+    <div class="st-mid hidden" id="stNav">
+      <button class="icon-btn sm" data-cmd="nav.prev" title="Previous page (PgUp)"><i data-i="chevUp"></i></button>
+      <input id="pageInput" aria-label="Page" spellcheck="false"><span class="muted" id="pageCount"></span>
+      <button class="icon-btn sm" data-cmd="nav.next" title="Next page (PgDn)"><i data-i="chevDown"></i></button>
+      <span class="st-sep"></span>
+      <button class="icon-btn sm" data-cmd="view.zoomout" title="Zoom out (Ctrl -)"><i data-i="minus"></i></button>
+      <button id="zoomLabel" class="zoom-label" title="Zoom presets">100%</button>
+      <button class="icon-btn sm" data-cmd="view.zoomin" title="Zoom in (Ctrl +)"><i data-i="plus"></i></button>
+      <button class="icon-btn sm" data-cmd="view.fitwidth" title="Fit width (Ctrl 2)"><i data-i="fitWidth"></i></button>
+      <button class="icon-btn sm" data-cmd="view.fitpage" title="Fit page (Ctrl 0)"><i data-i="fitPage"></i></button>
+      <span class="st-sep"></span>
+      <button class="icon-btn sm" data-cmd="view.continuous" title="Continuous scroll"><i data-i="scroll"></i></button>
+      <button class="icon-btn sm" data-cmd="view.single" title="Single page"><i data-i="page"></i></button>
+      <button class="icon-btn sm" data-cmd="view.two" title="Two pages side by side"><i data-i="book"></i></button>
+    </div>
+    <div class="st-right"><span id="stAi" class="st-ai hidden"></span></div>
+  </footer>
+</div>
+
+<div id="modalRoot"></div>
+<div id="menuRoot"></div>
+<div id="toasts"></div>
+<div id="printRoot"></div>
+
+<script src="icons.js"></script>
+<script src="core.js"></script>
+<script src="viewer.js"></script>
+<script src="tools.js"></script>
+<script src="panels.js"></script>
+<script src="ai.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

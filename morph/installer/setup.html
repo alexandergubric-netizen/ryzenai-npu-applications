@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morph Setup</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root {
+  --bg: #0d0e14; --panel: #14161f; --surface: #1a1d28; --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14);
+  --text: #eceef6; --muted: #9298ad; --faint: #646a80;
+  --a1: #7b6cff; --a2: #2fc6b5; --grad: linear-gradient(120deg, var(--a1), var(--a2));
+  --ok: #2fbf71; --warn: #f5a524; --err: #ff5c6c; --info: #6a8bff;
+  --c-video: #ff5c86; --c-audio: #ffa53d; --c-image: #22c3b0; --c-doc: #6a8bff; --c-data: #e2b93b;
+  --ease: cubic-bezier(.2, .8, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { font: 14px/1.5 var(--font); color: var(--text); background: var(--bg); display: grid; grid-template-columns: 270px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; color: inherit; }
+@keyframes morph {
+  0%, 100% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; transform: rotate(0); }
+  33% { border-radius: 63% 37% 41% 59% / 58% 36% 64% 42%; transform: rotate(60deg); }
+  66% { border-radius: 36% 64% 52% 48% / 38% 62% 38% 62%; transform: rotate(-40deg); }
+}
+@keyframes hue { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+.splash { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: radial-gradient(600px 400px at 50% 45%, #1b1840, var(--bg)); transition: opacity .6s var(--ease), visibility .6s; cursor: pointer; }
+.splash.out { opacity: 0; visibility: hidden; }
+.splash .orb { width: 120px; height: 120px; margin: 0 auto; background: var(--grad); background-size: 200% 200%; animation: morph 6s ease-in-out infinite, hue 4s linear infinite, pop .8s var(--spring) both; display: grid; place-items: center; box-shadow: 0 20px 70px rgba(123,108,255,.45); }
+.splash .orb img { width: 74px; animation: none; filter: brightness(10) saturate(0); opacity: .95; }
+.splash .orbs { position: relative; height: 0; }
+.splash .chip { position: absolute; font: 700 11px var(--font); padding: 3px 9px; border-radius: 8px; color: #fff; opacity: 0; animation: fly 1.4s var(--ease) forwards; }
+@keyframes fly { 0% { opacity: 0; transform: translate(var(--x), var(--y)) scale(.8); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(0, -70px) scale(.3); } }
+.splash b { display: block; text-align: center; margin-top: 22px; font: 650 30px var(--display); letter-spacing: 8px; padding-left: 8px; opacity: 0; animation: up .6s var(--ease) .5s forwards; }
+aside { background: linear-gradient(170deg, #1a1838, #0f1018 70%); padding: 30px 22px 22px; display: flex; flex-direction: column; border-right: 1px solid var(--line); position: relative; overflow: hidden; }
+aside::before { content: ""; position: absolute; width: 360px; height: 360px; left: -140px; bottom: -160px; background: var(--a2); filter: blur(110px); opacity: .18; }
+.brand { display: flex; align-items: center; gap: 13px; position: relative; }
+.brand .logo { width: 46px; height: 46px; display: grid; place-items: center; }
+.brand .logo img { width: 46px; height: 46px; }
+.brand b { font: 650 21px var(--display); display: block; letter-spacing: -.01em; }
+.brand span { font-size: 12px; color: var(--muted); }
+.steps { list-style: none; padding: 0; margin: 40px 0 0; display: flex; flex-direction: column; gap: 5px; position: relative; }
+.steps li { display: flex; align-items: center; gap: 12px; padding: 9px 11px; border-radius: 12px; color: var(--muted); transition: all .35s var(--ease); }
+.steps li i { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 13px; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); transition: all .35s var(--ease); }
+.steps li.on { color: var(--text); background: rgba(255, 255, 255, .06); }
+.steps li.on i { background: var(--c); color: #fff; transform: scale(1.08); }
+.steps li.done i { background: color-mix(in srgb, var(--c) 40%, transparent); color: #fff; }
+.legal { margin-top: auto; font-size: 11.5px; line-height: 1.6; color: var(--faint); position: relative; }
+.legal a { color: inherit; }
+main { position: relative; overflow: hidden; background: radial-gradient(700px 400px at 90% -10%, rgba(123,108,255,.12), transparent); }
+.page { position: absolute; inset: 0; padding: 36px 44px 0; overflow-y: auto; opacity: 0; transform: translateX(30px); pointer-events: none; transition: opacity .45s var(--ease), transform .45s var(--ease); display: flex; flex-direction: column; }
+.page > * { flex-shrink: 0; }
+.page.on { opacity: 1; transform: none; pointer-events: auto; }
+h1 { font: 650 27px/1.15 var(--display); margin: 0 0 8px; letter-spacing: -.02em; }
+.lead { color: var(--muted); font-size: 14.5px; max-width: 580px; margin: 0 0 20px; }
+.foot { position: sticky; bottom: 0; margin: auto -44px 0; padding: 14px 44px; display: flex; justify-content: flex-end; gap: 10px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+.btn { height: 40px; padding: 0 20px; border-radius: 12px; border: 1px solid var(--line2); background: var(--surface); font-weight: 560; transition: all .25s var(--spring); display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.28); }
+.btn.primary { background: var(--grad); background-size: 160% 100%; color: #fff; border: 0; box-shadow: 0 8px 24px rgba(123,108,255,.35); }
+.btn.primary:hover { background-position: 100% 0; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.feats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }
+.feats div { background: var(--surface); border: 1px solid var(--line); border-radius: 15px; padding: 13px 14px; animation: up .5s var(--ease) both; animation-delay: calc(var(--n) * 70ms); }
+.feats b { display: block; margin-bottom: 2px; }
+.feats span { color: var(--muted); font-size: 12.5px; }
+.feats div::before { content: ""; display: block; width: 26px; height: 5px; border-radius: 3px; background: var(--c); margin-bottom: 9px; }
+.license { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font: 11.5px/1.5 Consolas, monospace; white-space: pre-wrap; max-height: 140px; overflow: auto; color: var(--muted); }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--line); animation: up .45s var(--ease) both; animation-delay: calc(var(--n) * 60ms); }
+.check .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; flex: none; margin-top: 1px; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--err); } .dot.info { background: var(--info); }
+.check b { display: block; font-weight: 600; }
+.check span { color: var(--muted); font-size: 13px; }
+.check small { display: block; color: var(--faint); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 15px; padding: 14px 16px; margin-bottom: 12px; }
+.glow { border: 1px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(120deg, rgba(123,108,255,.7), rgba(47,198,181,.6)) border-box; }
+.npu { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+.chipart { width: 74px; height: 74px; flex: none; border-radius: 16px; background: #1f1c3d; position: relative; display: grid; place-items: center; box-shadow: inset 0 0 0 2px rgba(123,108,255,.5); }
+.chipart::before { content: "NPU"; font: 800 15px var(--display); background: var(--grad); -webkit-background-clip: text; color: transparent; letter-spacing: 1px; }
+.chipart i { position: absolute; width: 3px; height: 9px; background: #8b85c9; border-radius: 2px; }
+.chipart.off { filter: grayscale(1); opacity: .6; }
+.chipart.on::after { content: ""; position: absolute; inset: -6px; border-radius: 20px; border: 2px solid var(--a2); opacity: 0; animation: ping 2s var(--ease) infinite; }
+@keyframes ping { 0% { opacity: .7; transform: scale(.92); } 100% { opacity: 0; transform: scale(1.18); } }
+.pre { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 13px; background: rgba(245,165,36,.09); border: 1px solid rgba(245,165,36,.3); margin-bottom: 14px; font-size: 13px; }
+.pre b { color: var(--warn); }
+.pre a { color: var(--text); }
+.status { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 14px; }
+.status span { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.status span.ok { color: var(--ok); border-color: rgba(47,191,113,.4); }
+.choice { display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border-radius: 14px; border: 1px solid var(--line2); background: var(--surface); cursor: pointer; margin-bottom: 9px; transition: all .25s var(--ease); }
+.choice:hover { border-color: rgba(255,255,255,.3); }
+.choice.sel { border-color: var(--a1); background: rgba(123,108,255,.1); }
+.choice input { accent-color: var(--a1); width: 17px; height: 17px; margin-top: 2px; }
+.choice small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cols ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.cols li { padding: 4px 0 4px 24px; position: relative; font-size: 13px; color: var(--muted); }
+.cols li::before { position: absolute; left: 0; top: 3px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
+.cols .yes li::before { content: "✓"; background: var(--ok); }
+.cols .no li::before { content: "–"; background: var(--faint); }
+label.opt { display: flex; gap: 11px; align-items: flex-start; padding: 7px 0; cursor: pointer; }
+label.opt input { width: 17px; height: 17px; accent-color: var(--a1); margin-top: 2px; }
+label.opt small { display: block; color: var(--muted); font-size: 12px; }
+.dir { display: flex; gap: 8px; margin-top: 6px; }
+.dir input { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--line2); padding: 0 11px; font: 13px var(--font); background: var(--panel); color: var(--text); outline: none; }
+.dir input:focus { border-color: var(--a1); }
+.prog { display: flex; flex-direction: column; gap: 10px; }
+.ps { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 12px 14px; animation: up .4s var(--ease) both; }
+.ps b { display: flex; gap: 10px; align-items: center; font-weight: 600; }
+.ps .st { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line2); flex: none; }
+.ps.active .st { border-color: var(--a1); border-top-color: transparent; animation: spin .8s linear infinite; }
+.ps.done .st { border-color: var(--ok); background: var(--ok); }
+.ps.failed .st { border-color: var(--err); background: var(--err); }
+.ps.skipped .st { border-color: var(--warn); background: var(--warn); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ps small { display: block; color: var(--muted); margin: 3px 0 0 30px; font-size: 12px; }
+.bar { height: 5px; border-radius: 5px; background: var(--line2); overflow: hidden; margin: 8px 0 0 30px; }
+.bar i { display: block; height: 100%; background: var(--grad); transition: width .4s; }
+.err { color: var(--err); background: rgba(255,92,108,.1); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+.done-art { display: grid; place-items: center; margin: 6px 0 16px; }
+.done-art .orb { width: 96px; height: 96px; background: var(--grad); background-size: 200% 200%; animation: morph 6s ease-in-out infinite, hue 4s linear infinite, pop .7s var(--spring) both; display: grid; place-items: center; font-size: 40px; color: #fff; box-shadow: 0 18px 60px rgba(123,108,255,.4); }
+.test { position: fixed; top: 10px; right: 12px; background: var(--warn); color: #111; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; z-index: 5; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><div>
+  <div class="orbs" id="orbs"></div>
+  <div class="orb"><img src="/logo.png" alt=""></div><b>Morph</b>
+</div></div>
+<aside>
+  <div class="brand"><div class="logo"><img src="/logo.png" alt=""></div><div><b>Morph</b><span id="ver">Universal converter · setup</span></div></div>
+  <ol class="steps">
+    <li data-s="0" style="--c:var(--c-audio)"><i>1</i><div>Welcome</div></li>
+    <li data-s="1" style="--c:var(--c-image)"><i>2</i><div>Your PC</div></li>
+    <li data-s="2" style="--c:var(--a1)"><i>3</i><div>AI advisor</div></li>
+    <li data-s="3" style="--c:var(--c-doc)"><i>4</i><div>Options</div></li>
+    <li data-s="4" style="--c:var(--c-video)"><i>5</i><div>Install</div></li>
+  </ol>
+  <div class="legal" id="legal"></div>
+</aside>
+<main>
+  <section class="page" data-p="0">
+    <h1>Welcome to Morph</h1>
+    <p class="lead">Turn almost any file into the format you need — right on this PC, nothing is uploaded anywhere.</p>
+    <div class="feats">
+      <div style="--c:var(--c-video);--n:0"><b>Video & audio</b><span>MP4, H.265, AV1, WebM, MKV, MOV, GIF · MP3, FLAC, AAC, Opus, WAV… with trim, resize and GPU speed.</span></div>
+      <div style="--c:var(--c-image);--n:1"><b>Pictures</b><span>JPG, PNG, WebP, AVIF, HEIC (iPhone), camera RAW, SVG, ICO… resize and strip location data.</span></div>
+      <div style="--c:var(--c-doc);--n:2"><b>Documents & e-books</b><span>PDF, Word, Markdown, HTML, EPUB, ODT, LaTeX… PDF to images or text, merge into one PDF.</span></div>
+      <div style="--c:var(--c-data);--n:3"><b>Data, archives, fonts</b><span>Excel, CSV, JSON, YAML, SQLite · ZIP, 7z, TAR · TTF, WOFF2 · subtitles.</span></div>
+    </div>
+    <div class="license" id="license"></div>
+    <div class="foot"><button class="btn primary" data-next>Agree and continue</button></div>
+  </section>
+  <section class="page" data-p="1">
+    <h1>Checking your PC</h1>
+    <p class="lead">Morph brings everything it needs. Here is what it found.</p>
+    <div id="checks"><div class="check"><span>Checking…</span></div></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next id="toAI" disabled>Continue</button></div>
+  </section>
+  <section class="page" data-p="2">
+    <div id="aiPage"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next>Continue</button></div>
+  </section>
+  <section class="page" data-p="3">
+    <h1>Options</h1>
+    <p class="lead">Morph installs for your user account only — no administrator rights needed.</p>
+    <div class="card"><b>Install folder</b><div class="dir"><input id="dir" spellcheck="false"><button class="btn" id="browse">Browse…</button></div><small id="dir-note"></small></div>
+    <div class="card">
+      <label class="opt"><input type="checkbox" id="desk" checked><div>Desktop shortcut</div></label>
+      <label class="opt"><input type="checkbox" id="menu" checked><div>Start menu shortcut</div></label>
+    </div>
+    <div class="card" id="summary"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" id="go">Install</button></div>
+  </section>
+  <section class="page" data-p="4">
+    <h1 id="instTitle">Installing…</h1>
+    <p class="lead" id="instLead">This takes about half a minute.</p>
+    <div class="done-art" id="doneArt" style="display:none"><div class="orb">✓</div></div>
+    <div class="prog" id="prog"></div>
+    <div id="instErr"></div>
+    <div class="foot"><button class="btn ghost" id="close" style="display:none">Close</button><button class="btn primary" id="launch" style="display:none">Open Morph</button></div>
+  </section>
+</main>
+<script>
+const TOKEN = "{{TOKEN}}";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const get = (p) => fetch(p, { headers: { "X-Setup": TOKEN } }).then((r) => r.json());
+const post = (p, b = {}) => fetch(p, { method: "POST", headers: { "X-Setup": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(b) }).then((r) => r.json());
+let page = 0, info = null, aiChoice = false;
+function show(n) {
+  page = n;
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("on", +p.dataset.p === n));
+  document.querySelectorAll(".steps li").forEach((l) => { l.classList.toggle("on", +l.dataset.s === n); l.classList.toggle("done", +l.dataset.s < n); });
+  if (n === 3) renderSummary();
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-next]")) show(page + 1);
+  if (e.target.closest("[data-back]")) show(page - 1);
+  const a = e.target.closest("a[data-url]");
+  if (a) { e.preventDefault(); post("/api/open", { url: a.dataset.url }); }
+});
+setInterval(() => post("/api/ping"), 3000);
+post("/api/ping");
+
+// splash: file formats fly into the morphing logo
+const fly = [["MP4", "--c-video"], ["PNG", "--c-image"], ["PDF", "--c-doc"], ["MP3", "--c-audio"], ["CSV", "--c-data"], ["HEIC", "--c-image"]];
+fly.forEach(([t, c], i) => {
+  const a = (i / fly.length) * Math.PI * 2;
+  const el = document.createElement("span");
+  el.className = "chip"; el.textContent = t;
+  el.style.cssText = `background:var(${c});--x:${Math.cos(a) * 150}px;--y:${Math.sin(a) * 110 - 70}px;animation-delay:${i * 90}ms;left:50%;margin-left:-18px`;
+  $("#orbs").append(el);
+});
+const splash = $("#splash");
+const hide = () => splash.classList.add("out");
+splash.onclick = hide;
+setTimeout(hide, 1900);
+show(0);
+
+(async function load() {
+  info = await get("/api/info");
+  if (info.test) document.body.insertAdjacentHTML("beforeend", '<div class="test">TEST MODE</div>');
+  $("#ver").textContent = `Version ${info.version} · setup`;
+  $("#license").textContent = info.license;
+  $("#legal").innerHTML = `${esc(info.copyright)}<br>Free software · <a href="#" data-url="https://opensource.org/license/mit">MIT License</a><br>Bundles FFmpeg, pandoc, PyMuPDF and more — see the licence above`;
+  const mark = { ok: "✓", warn: "!", bad: "×", info: "i" };
+  $("#checks").innerHTML = info.checks.map((c, i) => `<div class="check" style="--n:${i}"><span class="dot ${c.status}">${mark[c.status]}</span><div><b>${esc(c.label)}</b><span>${esc(c.value)}</span>${c.note ? `<small>${esc(c.note)}</small>` : ""}</div></div>`).join("")
+    + (info.can_install ? "" : `<div class="err">Morph can't be installed on this PC (see above).</div>`);
+  $("#toAI").disabled = !info.can_install;
+  $("#dir").value = info.default_dir;
+  dirNote();
+  renderAI();
+})();
+
+function renderAI() {
+  const ai = info.ai;
+  const pins = Array.from({ length: 6 }, (_, i) => `<i style="left:${14 + i * 9}px;top:-5px"></i><i style="left:${14 + i * 9}px;bottom:-5px"></i>`).join("");
+  if (!ai.supported) {
+    aiChoice = false;
+    const intel = ai.vendor === "Intel";
+    $("#aiPage").innerHTML = `
+      <div class="npu"><div class="chipart off">${pins}</div><div><h1 style="margin:0">Converter mode on this PC</h1>
+        <div style="color:var(--muted)">${esc(ai.reason)}.</div></div></div>
+      <p class="lead">Morph's AI advisor runs on the NPU of AMD Ryzen AI processors through FastFlowLM. This PC doesn't have one, so Morph installs with everything except the AI — you still get smart suggestions, they just come from Morph's built-in rules.</p>
+      <div class="cols">
+        <div class="card"><b>Works on this PC</b><ul class="yes"><li>All 100+ formats and conversions</li><li>Compress, trim, resize, merge to PDF</li><li>Built-in format suggestions with pros & cons</li><li>${intel ? "Fast video encoding with Intel Quick Sync (when available)" : "GPU video encoding when available, CPU otherwise"}</li></ul></div>
+        <div class="card"><b>Not available</b><ul class="no"><li>AI advisor that explains formats for each file</li><li>Follow-up questions ("smallest for WhatsApp?")</li></ul>
+          <div style="font-size:12px;color:var(--faint);margin-top:10px">Needs an AMD Ryzen AI 300/400/Max processor, Windows 11 and FastFlowLM.</div></div>
+      </div>`;
+    return;
+  }
+  const ready = ai.flm && ai.model;
+  aiChoice = !ready;
+  $("#aiPage").innerHTML = `
+    <div class="npu"><div class="chipart on">${pins}</div><div><h1 style="margin:0">Your PC has a Ryzen AI NPU</h1>
+      <div style="color:var(--muted)">${esc(ai.npu || "AMD Ryzen AI NPU")} — Morph can run its AI format advisor on it, fully offline.</div></div></div>
+    <div class="pre"><span>⚠</span><div><b>Prerequisite: FastFlowLM.</b> The AI advisor needs <a href="#" data-url="https://github.com/FastFlowLM/FastFlowLM">FastFlowLM</a> — a free engine that runs language models on the NPU. It is a separate program with its own installer (Windows asks for permission), plus the ${esc(ai.model_name)} model (about ${ai.model_gb} GB). Without it Morph still converts everything; only the AI advice is off.</div></div>
+    <div class="status"><span class="${ai.flm ? "ok" : ""}">${ai.flm ? "✓" : "○"} FastFlowLM ${ai.flm ? "installed" : "not installed"}</span><span class="${ai.model ? "ok" : ""}">${ai.model ? "✓" : "○"} Model ${esc(ai.model_name)} ${ai.model ? "downloaded" : "not downloaded"}</span></div>
+    ${ready ? `<div class="card glow"><b>✦ Everything is ready</b><div style="color:var(--muted);font-size:13px;margin-top:3px">FastFlowLM and the model are already installed — the AI advisor will work right away.</div></div>` : `
+    <label class="choice sel" data-c="1"><input type="radio" name="ai" checked><div><b>Enable the AI advisor now</b> <span style="color:var(--a2);font-size:12px">recommended</span>
+      <small>${ai.flm ? "" : "Installs FastFlowLM, then "}downloads ${esc(ai.model_name)} (about ${ai.model_gb} GB) after Morph is installed.</small></div></label>
+    <label class="choice" data-c="0"><input type="radio" name="ai"><div><b>Later</b><small>Install Morph only. You can enable the AI any time in Morph → Settings → AI format advisor.</small></div></label>`}`;
+  document.querySelectorAll(".choice").forEach((c) => c.onclick = () => {
+    document.querySelectorAll(".choice").forEach((x) => x.classList.toggle("sel", x === c));
+    c.querySelector("input").checked = true;
+    aiChoice = c.dataset.c === "1";
+  });
+}
+function renderSummary() {
+  if (!info) return;
+  const ai = info.ai;
+  const line = !ai.supported ? `<b>Converter mode</b> — no AI advisor on this PC.`
+    : ai.flm && ai.model ? `<b>AI advisor</b> — ready on your NPU.`
+    : aiChoice ? `<b>AI advisor</b> — ${ai.flm ? "" : "FastFlowLM will be installed and "}the model downloaded after Morph.`
+    : `<b>AI advisor</b> — later, from Morph → Settings.`;
+  $("#summary").innerHTML = `<div style="font-size:13px;color:var(--muted)">${line}</div>`;
+}
+
+$("#browse").onclick = async () => { const r = await post("/api/browse", { dir: $("#dir").value }); if (r.dir) $("#dir").value = r.dir; dirNote(); };
+// the app always gets a folder of its own, so uninstalling can't take anything else with it
+function dirNote() {
+  const v = $("#dir").value.trim().replace(/[\\/]+$/, ""), app = info.app;
+  const final = v.split(/[\\/]/).pop().toLowerCase() === app.toLowerCase() ? v : `${v}\\${app}`;
+  $("#dir-note").textContent = v ? `${app} goes into its own folder: ${final}` : "";
+}
+$("#dir").addEventListener("input", dirNote);
+$("#go").onclick = async () => {
+  show(4);
+  await post("/api/install", { dir: $("#dir").value, desktop: $("#desk").checked, startmenu: $("#menu").checked, ai: !!(info.ai.supported && aiChoice) });
+  poll();
+};
+async function poll() {
+  const p = await get("/api/progress");
+  $("#prog").innerHTML = p.steps.map((s) => `<div class="ps ${s.state}"><b><span class="st"></span>${esc(s.label)}</b>${s.detail ? `<small>${esc(s.detail)}</small>` : ""}${s.pct != null && s.state === "active" ? `<div class="bar"><i style="width:${s.pct}%"></i></div>` : ""}</div>`).join("");
+  if (p.running || (!p.done && !p.error)) return setTimeout(poll, 600);
+  if (p.error) {
+    $("#instTitle").textContent = "Something went wrong";
+    $("#instLead").textContent = "";
+    $("#instErr").innerHTML = `<div class="err">${esc(p.error)}</div>`;
+    $("#close").style.display = "";
+  } else {
+    $("#instTitle").textContent = "Morph is ready";
+    $("#instLead").textContent = info.ai.supported ? "Find it on your desktop and in the Start menu. Drop any file on its window to convert it."
+      : "Find it on your desktop and in the Start menu. It runs in converter mode on this PC — every format, no AI advisor.";
+    $("#doneArt").style.display = "";
+    $("#launch").style.display = ""; $("#close").style.display = "";
+    document.querySelectorAll(".steps li").forEach((l) => l.classList.add("done"));
+  }
+}
+$("#launch").onclick = async () => { await post("/api/launch"); setTimeout(() => window.close(), 400); };
+$("#close").onclick = () => window.close();
+</script>
+</body>
+</html>

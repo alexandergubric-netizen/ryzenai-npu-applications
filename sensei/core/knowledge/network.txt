@@ -1,0 +1,257 @@
+# Network and Wi-Fi. Slots: {host} {url} {port} {name} {text}
+
+## Addresses
+
+? my ip address | local ip | what is my ip | ip address | show my ip | ip
+Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)\.' } | Select-Object InterfaceAlias, IPAddress, PrefixLength
+= Shows the local IPv4 address of each connected adapter.
+
+? public ip | external ip | internet ip | what is my public ip | my ip on the internet
+Get-PublicIP
+= Asks ipify.org for the public IP address your network uses on the internet (Sensei helper).
+
+? copy my ip to the clipboard | copy ip address
+(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127|169\.254)\.' } | Select-Object -First 1).IPAddress | Set-Clipboard; Get-Clipboard
+= Copies your local IP address to the clipboard.
+
+? network configuration | gateway and dns | ip configuration | network settings summary
+Get-NetIPConfiguration | Where-Object IPv4DefaultGateway | Select-Object InterfaceAlias, @{n='IPv4';e={$_.IPv4Address.IPAddress}}, @{n='Gateway';e={$_.IPv4DefaultGateway.NextHop}}, @{n='DNS';e={$_.DNSServer.ServerAddresses -join ', '}}
+= Shows IP address, router and DNS servers of each connected adapter.
+
+? ipconfig | ipconfig all | full ip configuration
+ipconfig /all
+= Shows the complete IP configuration of every adapter.
+
+? mac address | physical address
+Get-NetAdapter | Select-Object Name, MacAddress, Status
+= Shows the MAC address of every network adapter.
+
+? network adapters | network cards | link speed | adapters
+Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, LinkSpeed, MacAddress
+= Lists network adapters with status, speed and MAC address.
+
+? default gateway | router ip | router address
+Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Select-Object InterfaceAlias, NextHop, RouteMetric
+= Shows the router (default gateway) address.
+
+? open the router page | router settings | router admin page
+Start-Process ("http://" + (Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Sort-Object RouteMetric | Select-Object -First 1).NextHop)
+= Opens your router's web page in the browser.
+
+? devices on my network | who is connected to my wifi | other computers on the network | arp table
+Get-NetNeighbor -AddressFamily IPv4 | Where-Object { $_.State -in 'Reachable', 'Stale', 'Permanent' -and $_.IPAddress -notmatch '^(224|239|255)\.' -and $_.LinkLayerAddress -notmatch '^(FF-FF|00-00-00-00-00-00)' } | Select-Object IPAddress, LinkLayerAddress, State
+= Lists devices your PC has recently talked to on the local network.
+
+## Connectivity
+
+? am I online | is the internet working | internet connection check | am I connected | check internet | check if my internet is working | is my internet down | is the internet down
+Test-Connection -TargetName 1.1.1.1 -Count 1 -Quiet
+= True when the internet can be reached.
+
+? ping {host} | is {host} reachable | is {host} up | test connection to {host} | check {host}
+Test-Connection -TargetName {{host}} -Count 4 | Select-Object Address, Latency, Status
+= Sends 4 pings to {host} and shows the response times.
+
+? is {host} down | is {host} working | website status of {host} | check if {host} is online
+try { $r = Invoke-WebRequest -Uri "https://{{host}}" -Method Head -TimeoutSec 15 -MaximumRedirection 5; "{{host}} is up (HTTP $($r.StatusCode))" } catch { "{{host}} did not answer: $($_.Exception.Message)" }
+= Checks whether the website {host} answers.
+
+? internet speed | speed test | how fast is my internet | test my connection speed | download speed
+Test-InternetSpeed
+= Downloads 25 MB from Cloudflare and reports Mbps and ping (Sensei helper).
+
+? test port {port} on {host} | is port {port} open on {host} | check port {port} on {host}
+Test-NetConnection -ComputerName {{host}} -Port {{port}} | Select-Object ComputerName, RemotePort, TcpTestSucceeded
+= Checks whether a TCP connection to {host}:{port} succeeds.
+
+? traceroute {host} | trace route to {host} | tracert {host}
+Test-NetConnection -ComputerName {{host}} -TraceRoute | Select-Object -ExpandProperty TraceRoute
+= Lists every router hop on the way to {host}.
+
+? dns lookup {host} | resolve {host} | nslookup {host} | ip of {host} | what is the ip of {host}
+Resolve-DnsName -Name {{host}} -Type A | Select-Object Name, IPAddress
+= Looks up the IP addresses of {host}.
+
+? who owns the domain {host} | whois {host}
+Resolve-DnsName -Name {{host}} -Type NS | Select-Object Name, NameHost
+= Shows the name servers of {host} (Windows has no whois tool built in).
+
+## Ports
+
+? which process is using port {port} | what is listening on port {port} | port {port} in use | who uses port {port}
+Get-NetTCPConnection -LocalPort {{port}} -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, State, OwningProcess, @{n='Process';e={(Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).ProcessName}}
+= Shows which process owns port {port}. No output means nothing uses it.
+
+? kill the process on port {port} | free port {port} | stop whatever uses port {port}
+Get-NetTCPConnection -LocalPort {{port}} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -gt 4 } | ForEach-Object { Stop-Process -Id $_ -Force -PassThru } | Select-Object Name, Id
+= Ends the process that holds port {port}.
+
+? open ports | listening ports | which ports are open on my pc
+Get-NetTCPConnection -State Listen | Sort-Object LocalPort | Select-Object LocalAddress, LocalPort, OwningProcess, @{n='Process';e={(Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).ProcessName}}
+= Lists every TCP port your PC listens on and the program behind it.
+
+? active connections | what is connected to the internet | established connections | which programs use the internet
+Get-NetTCPConnection -State Established | Where-Object RemoteAddress -notmatch '^(127\.|::1)' | Select-Object RemoteAddress, RemotePort, @{n='Process';e={(Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).ProcessName}} | Sort-Object Process
+= Lists open internet connections and which program made them.
+
+? open port {port} in the firewall | allow port {port} | firewall rule for port {port}
+New-NetFirewallRule -DisplayName "Sensei - allow TCP {{port}}" -Direction Inbound -Protocol TCP -LocalPort {{port}} -Action Allow | Select-Object DisplayName, Enabled
+= Allows incoming TCP connections on port {port}.
+! admin
+
+? close port {port} in the firewall | remove the firewall rule for port {port}
+Remove-NetFirewallRule -DisplayName "Sensei - allow TCP {{port}}"; 'Rule removed.'
+= Removes the rule Sensei made for port {port}.
+! admin
+
+## DNS
+
+? dns servers | which dns am I using
+Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object ServerAddresses | Select-Object InterfaceAlias, ServerAddresses
+= Lists the DNS servers each adapter uses.
+
+? flush dns | clear dns cache | reset dns cache
+Clear-DnsClientCache; 'DNS cache cleared.'
+= Empties the DNS cache.
+
+? use cloudflare dns | set dns to 1.1.1.1 | change dns to cloudflare
+Get-NetAdapter -Physical | Where-Object Status -eq 'Up' | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ServerAddresses 1.1.1.1, 1.0.0.1 }; Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object ServerAddresses
+= Sets Cloudflare DNS (1.1.1.1) on connected adapters.
+! admin
+
+? use google dns | set dns to 8.8.8.8 | change dns to google
+Get-NetAdapter -Physical | Where-Object Status -eq 'Up' | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ServerAddresses 8.8.8.8, 8.8.4.4 }; Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object ServerAddresses
+= Sets Google DNS (8.8.8.8) on connected adapters.
+! admin
+
+? reset dns to automatic | automatic dns | use router dns
+Get-NetAdapter -Physical | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ResetServerAddresses }; Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object ServerAddresses
+= Goes back to the DNS servers your router hands out.
+! admin
+
+? hosts file | show the hosts file
+Get-Content "$env:windir\System32\drivers\etc\hosts"
+= Prints the hosts file.
+
+? edit the hosts file | change hosts file
+Start-Process notepad -ArgumentList "$env:windir\System32\drivers\etc\hosts" -Verb RunAs
+= Opens the hosts file in Notepad as administrator.
+
+? block {host} | block the website {host}
+Add-Content -Path "$env:windir\System32\drivers\etc\hosts" -Value "`n0.0.0.0 {{host}}`n0.0.0.0 www.{{host}}"; Clear-DnsClientCache; 'Blocked {{host}} in the hosts file.'
+= Blocks {host} on this PC through the hosts file.
+! admin
+
+## Wi-Fi
+
+? saved wifi networks | wifi profiles | networks I connected to before | known wifi networks
+netsh wlan show profiles
+= Lists the Wi-Fi networks saved on this PC.
+
+? wifi password | show my wifi password | password of my wifi | what is my wifi password | current wifi password
+Get-WifiPassword
+= Shows the password of the Wi-Fi you are connected to (Sensei helper).
+
+? wifi password of {name} | password for the wifi {text} | show the password of {name}
+Get-WifiPassword -Name "{{name}}"
+= Shows the saved password of the Wi-Fi network {name}.
+
+? available wifi networks | wifi networks nearby | scan for wifi | which wifi can I connect to
+netsh wlan show networks mode=bssid
+= Lists Wi-Fi networks in range with signal strength.
+
+? current wifi | wifi signal strength | which wifi am I connected to | wifi speed | wifi status | is wifi on | is wifi connected | am I on wifi
+netsh wlan show interfaces
+= Shows the connected network, signal strength and speed.
+
+? connect to wifi {name} | join the network {name}
+netsh wlan connect name="{{name}}"
+= Connects to the saved Wi-Fi network {name}.
+
+? connect to wifi {text} | connect to {text} wifi | join wifi {text}
+netsh wlan connect name="{{text}}"
+= Connects to the saved Wi-Fi network {text}.
+
+? disconnect wifi | disconnect from wifi | leave the wifi network
+netsh wlan disconnect
+= Disconnects from the current Wi-Fi network (Wi-Fi stays on).
+
+? turn off wifi | wifi off | disable wifi | switch off wifi
+Set-WifiState -Off
+= Turns the Wi-Fi adapter off (Sensei helper).
+! admin
+
+? turn on wifi | wifi on | enable wifi | switch on wifi
+Set-WifiState -On
+= Turns the Wi-Fi adapter on (Sensei helper).
+! admin
+
+? forget wifi {name} | delete the saved wifi {name} | remove wifi network {name}
+netsh wlan delete profile name="{{name}}"
+= Deletes the saved Wi-Fi network {name} and its password.
+
+? wifi report | wifi problems history
+netsh wlan show wlanreport
+= Creates an HTML report of Wi-Fi sessions and errors from the last 3 days.
+! admin
+
+? wifi settings | open wifi settings
+Start-Process "ms-settings:network-wifi"
+= Opens Wi-Fi settings.
+
+? airplane mode | flight mode
+Start-Process "ms-settings:network-airplanemode"
+= Opens Airplane mode settings (Windows has no command to switch it directly).
+
+? mobile hotspot | share my internet | turn on hotspot
+Start-Process "ms-settings:network-mobilehotspot"
+= Opens Mobile hotspot settings.
+
+## Other
+
+? network profile | is my network public or private
+Get-NetConnectionProfile | Select-Object Name, InterfaceAlias, NetworkCategory, IPv4Connectivity
+= Shows whether each network is Public or Private.
+
+? set the network to private | make network private | change network to private
+Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private; Get-NetConnectionProfile | Select-Object Name, NetworkCategory
+= Marks the current network as Private (allows sharing and discovery).
+! admin
+
+? set the network to public | make network public
+Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Public; Get-NetConnectionProfile | Select-Object Name, NetworkCategory
+= Marks the current network as Public (safer on cafe/hotel Wi-Fi).
+! admin
+
+? shared folders | smb shares | what do I share on the network
+Get-SmbShare | Select-Object Name, Path, Description
+= Lists folders this PC shares on the network.
+
+? vpn connections | vpn status | am I on vpn
+Get-VpnConnection -ErrorAction SilentlyContinue | Select-Object Name, ServerAddress, ConnectionStatus; Get-NetAdapter | Where-Object { $_.InterfaceDescription -match 'VPN|TAP|WireGuard|Tailscale|NordLynx' } | Select-Object Name, InterfaceDescription, Status
+= Shows Windows VPN connections and VPN adapters (NordVPN, Tailscale ...) with their status.
+
+? proxy settings | am I using a proxy
+netsh winhttp show proxy; Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' | Select-Object ProxyEnable, ProxyServer
+= Shows the system and user proxy settings.
+
+? reset network | fix internet problems | winsock reset | network reset
+netsh winsock reset; netsh int ip reset; ipconfig /flushdns
+= Resets the Windows network stack. Restart the PC afterwards.
+! admin
+
+? renew ip | get a new ip address | release and renew
+ipconfig /release; ipconfig /renew
+= Asks the router for a fresh IP address (the connection drops for a moment).
+
+? enable remote desktop | turn on remote desktop | allow remote connections | rdp
+Get-CimInstance Win32_OperatingSystem | Select-Object Caption; Start-Process "ms-settings:remotedesktop"
+= Opens Remote Desktop settings. Windows Home editions cannot accept Remote Desktop connections (Pro can); use Quick Assist or another remote tool instead.
+
+? remote help | quick assist | let someone help me remotely
+Start-Process "ms-quick-assist:"
+= Opens Quick Assist, Windows' built-in remote help.
+
+? data used by apps | network usage per app
+Start-Process "ms-settings:datausage"
+= Opens Data usage settings, which list how much data each app used.

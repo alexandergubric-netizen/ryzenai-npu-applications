@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="tatami-token" content="{{TOKEN}}">
+<meta name="tatami-version" content="{{VERSION}}">
+<title>Install Tatami</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { overflow: auto; }
+  .wiz { min-height: 100vh; display: flex; flex-direction: column; }
+  .wiz-main { flex: 1; padding: 32px 40px 16px; display: flex; gap: 28px; align-items: flex-start; }
+  .wiz-art { width: 132px; height: 132px; flex: none; }
+  .wiz-art svg { width: 100%; height: 100%; }
+  .wiz h1 { margin: 2px 0 4px; font: 600 26px/34px var(--font-display); }
+  .wiz .lead { margin: 0 0 18px; color: var(--text-2); }
+  .opts { background: var(--layer); border: 1px solid var(--stroke); border-radius: var(--radius); padding: 4px 16px; }
+  .opt { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--stroke); }
+  .opt:last-child { border-bottom: 0; }
+  .opt small { display: block; color: var(--text-2); font-size: 12px; }
+  .where { margin-top: 12px; font-size: 12px; color: var(--text-2); word-break: break-all; }
+  .wiz-foot { display: flex; align-items: center; gap: 8px; padding: 16px 24px; background: var(--layer); border-top: 1px solid var(--stroke); }
+  .wiz-foot .lic { flex: 1; font-size: 12px; color: var(--text-2); }
+  .wiz-foot .btn { min-width: 120px; justify-content: center; }
+  .step[hidden] { display: none; }
+  .done-ic { font-family: var(--icons); font-size: 18px; color: var(--ok); vertical-align: -2px; margin-right: 6px; }
+  .err { color: var(--danger); margin-top: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ring { width: 18px; height: 18px; border: 2px solid var(--stroke-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: -4px; margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="wiz">
+  <div class="wiz-main">
+    <div class="wiz-art" id="art"></div>
+    <div style="flex:1;min-width:0">
+      <section class="step" id="s1">
+        <h1>Install Tatami <span id="ver" class="muted" style="font-weight:400;font-size:18px"></span></h1>
+        <p class="lead">See what fills your disk. Free, fast, and it only installs for you — no administrator rights needed.</p>
+        <div class="opts">
+          <div class="opt"><div>Start menu shortcut<small>Find Tatami by typing its name in Start</small></div>
+            <label class="toggle"><input type="checkbox" id="oStart" checked><span class="sw"></span></label></div>
+          <div class="opt"><div>Desktop shortcut</div>
+            <label class="toggle"><input type="checkbox" id="oDesk" checked><span class="sw"></span></label></div>
+          <div class="opt"><div>“Analyse with Tatami” in File Explorer<small>Right-click a folder or drive (Show more options)</small></div>
+            <label class="toggle"><input type="checkbox" id="oCtx" checked><span class="sw"></span></label></div>
+        </div>
+        <div class="where" id="where"></div>
+        <div class="err" id="err" hidden></div>
+      </section>
+      <section class="step" id="s2" hidden>
+        <h1><span class="ring"></span>Installing…</h1>
+        <p class="lead">Laying the mats. This takes a second.</p>
+      </section>
+      <section class="step" id="s3" hidden>
+        <h1><span class="done-ic">&#xE73E;</span>Tatami is installed</h1>
+        <p class="lead" id="doneText">You'll find it in Start and on your desktop. Uninstall it any time from Settings → Apps.</p>
+      </section>
+    </div>
+  </div>
+  <div class="wiz-foot">
+    <span class="lic">© 2026 Alexander Gubric · MIT License · free for everyone</span>
+    <button class="btn" id="bCancel">Cancel</button>
+    <button class="btn primary" id="bGo">Install</button>
+  </div>
+</div>
+<script type="module">
+  import { get, post } from './api.js';
+  import { logoSVG } from './colors.js';
+  const $ = id => document.getElementById(id);
+  $('art').innerHTML = logoSVG(true);
+  const info = await get('setup-info');
+  $('ver').textContent = info.version;
+  $('where').textContent = 'Installs to ' + info.dir + (info.installed ? ` · replaces version ${info.installed}` : '');
+  if (info.installed) { $('bGo').textContent = info.installed === info.version ? 'Reinstall' : 'Update'; }
+  if (info.test) $('where').textContent += ' (test mode: no shortcuts or registry changes)';
+  let done = false;
+  $('bCancel').onclick = () => window.close();
+  $('bGo').onclick = async () => {
+    if (done) { await post('setup-launch').catch(() => {}); window.close(); return; }
+    $('err').hidden = true;
+    $('s1').hidden = true; $('s2').hidden = false;
+    $('bGo').disabled = true; $('bCancel').disabled = true;
+    $('art').innerHTML = logoSVG(true);
+    const t0 = Date.now();
+    try {
+      await post('setup-install', { startMenu: $('oStart').checked, desktop: $('oDesk').checked, context: $('oCtx').checked });
+      await new Promise(r => setTimeout(r, Math.max(0, 900 - (Date.now() - t0))));
+      const where = [$('oStart').checked && 'in Start', $('oDesk').checked && 'on your desktop'].filter(Boolean).join(' and ');
+      $('doneText').textContent = (where ? `You'll find it ${where}. ` : '') + 'Uninstall it any time from Settings → Apps.';
+      $('s2').hidden = true; $('s3').hidden = false;
+      $('bGo').textContent = 'Open Tatami'; $('bCancel').textContent = 'Close';
+      done = true;
+    } catch (e) {
+      $('s2').hidden = true; $('s1').hidden = false;
+      $('err').textContent = e.message; $('err').hidden = false;
+    }
+    $('bGo').disabled = false; $('bCancel').disabled = false;
+  };
+  setInterval(() => get('ping').catch(() => {}), 2000);
+</script>
+</body>
+</html>

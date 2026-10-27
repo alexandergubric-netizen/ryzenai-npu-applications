@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Washi Setup</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root {
+  --bg: #f4efe4; --paper: #fffaf0; --surface: #fffefb; --ink: #1b2130; --ink-2: #4f5767; --muted: #8a8f99; --line: #e4dccb;
+  --indigo: #27407a; --verm: #e2452f; --matcha: #6f9a33; --gold: #d99a17;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { font: 14px/1.5 var(--font); color: var(--ink); background: var(--bg); display: grid; grid-template-columns: 290px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; }
+.splash { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: radial-gradient(700px 400px at 50% 45%, #fbf6ea, #ebe1cc); transition: opacity .6s var(--ease), visibility .6s; cursor: pointer; }
+.splash.out { opacity: 0; visibility: hidden; }
+.splash img { width: 120px; height: 120px; animation: drop .8s var(--ease) both; filter: drop-shadow(0 14px 24px rgba(40, 30, 10, .25)); }
+.splash b { display: block; text-align: center; margin-top: 16px; font: 600 30px var(--display); letter-spacing: 9px; padding-left: 9px; opacity: 0; animation: up .6s var(--ease) .5s forwards; }
+@keyframes drop { from { opacity: 0; transform: translateY(24px) rotate(-8deg) scale(.85); } }
+@keyframes up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+aside { background: linear-gradient(170deg, #1d2f5c, #111a33); color: #f4efe4; padding: 32px 26px 22px; display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 13px; }
+.brand img { width: 50px; height: 50px; }
+.brand b { font: 600 21px var(--display); display: block; letter-spacing: .5px; }
+.brand span { font-size: 12px; opacity: .6; }
+.steps { list-style: none; padding: 0; margin: 44px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.steps li { display: flex; align-items: center; gap: 13px; padding: 9px 11px; border-radius: 12px; opacity: .45; transition: all .35s var(--ease); }
+.steps li i { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-style: normal; font-weight: 700; background: color-mix(in srgb, var(--c) 25%, transparent); color: var(--c); transition: all .35s var(--ease); }
+.steps li.on { opacity: 1; background: rgba(255, 255, 255, .07); }
+.steps li.on i { background: var(--c); color: #fff; }
+.steps li.done { opacity: .8; }
+.legal { margin-top: auto; font-size: 11.5px; line-height: 1.6; opacity: .6; }
+.legal a { color: inherit; }
+main { position: relative; overflow: hidden; }
+.page { position: absolute; inset: 0; padding: 40px 48px 0; overflow-y: auto; opacity: 0; transform: translateX(30px); pointer-events: none; transition: opacity .45s var(--ease), transform .45s var(--ease); display: flex; flex-direction: column; }
+.page > * { flex-shrink: 0; }
+.page.on { opacity: 1; transform: none; pointer-events: auto; }
+h1 { font: 600 28px/1.15 var(--display); margin: 0 0 10px; letter-spacing: -.02em; }
+.lead { color: var(--ink-2); font-size: 15px; max-width: 560px; margin: 0 0 22px; }
+.foot { position: sticky; bottom: 0; margin: auto -48px 0; padding: 16px 48px; display: flex; justify-content: flex-end; gap: 10px; background: var(--bg); border-top: 1px solid var(--line); }
+.btn { height: 40px; padding: 0 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 500; transition: all .2s var(--ease); display: inline-flex; align-items: center; gap: 8px; color: var(--ink); }
+.btn:hover { border-color: var(--ink-2); transform: translateY(-1px); }
+.btn.primary { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.feats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+.feats div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; animation: up .5s var(--ease) both; }
+.feats div:nth-child(2) { animation-delay: .06s; } .feats div:nth-child(3) { animation-delay: .12s; } .feats div:nth-child(4) { animation-delay: .18s; }
+.feats b { display: block; margin-bottom: 2px; }
+.feats span { color: var(--muted); font-size: 12.5px; }
+.feats div::before { content: ""; display: block; width: 26px; height: 5px; border-radius: 3px; background: var(--c); margin-bottom: 9px; }
+.license { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font: 12px/1.5 Consolas, monospace; white-space: pre-wrap; max-height: 150px; overflow: auto; color: var(--ink-2); }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.check .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; flex: none; margin-top: 1px; }
+.dot.ok { background: var(--matcha); } .dot.warn { background: var(--gold); } .dot.bad { background: var(--verm); } .dot.info { background: #8a8f99; }
+.check b { display: block; font-weight: 600; }
+.check span { color: var(--ink-2); font-size: 13px; }
+.check small { display: block; color: var(--muted); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+.card.ai { border-color: color-mix(in srgb, var(--verm) 35%, var(--line)); background: linear-gradient(110deg, #fff7e4, #fff1ec); }
+label.opt { display: flex; gap: 11px; align-items: flex-start; padding: 7px 0; cursor: pointer; }
+label.opt input { width: 17px; height: 17px; accent-color: var(--indigo); margin-top: 2px; }
+label.opt small { display: block; color: var(--muted); font-size: 12px; }
+.dir { display: flex; gap: 8px; margin-top: 6px; }
+.dir input { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--line); padding: 0 11px; font: 13px var(--font); background: #fff; }
+.prog { display: flex; flex-direction: column; gap: 10px; }
+.ps { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.ps b { display: flex; gap: 10px; align-items: center; }
+.ps .st { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line); flex: none; }
+.ps.active .st { border-color: var(--indigo); border-top-color: transparent; animation: spin .8s linear infinite; }
+.ps.done .st { border-color: var(--matcha); background: var(--matcha); }
+.ps.failed .st { border-color: var(--verm); background: var(--verm); }
+.ps.skipped .st { border-color: var(--gold); background: var(--gold); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ps small { display: block; color: var(--muted); margin: 3px 0 0 30px; font-size: 12px; }
+.bar { height: 5px; border-radius: 5px; background: var(--line); overflow: hidden; margin: 8px 0 0 30px; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--verm)); transition: width .4s; }
+.err { color: var(--verm); background: #fdeeea; border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+.done-art { display: grid; place-items: center; margin: 10px 0 18px; }
+.done-art img { width: 110px; animation: drop .8s var(--ease) both; }
+.test { position: fixed; top: 10px; right: 12px; background: var(--gold); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><div><img src="/logo.png" alt=""><b>Washi</b></div></div>
+<aside>
+  <div class="brand"><img src="/logo.png" alt=""><div><b>Washi</b><span id="ver">PDF editor · setup</span></div></div>
+  <ol class="steps">
+    <li data-s="0" style="--c:#e0a526"><i>1</i><div>Welcome</div></li>
+    <li data-s="1" style="--c:#6f9a33"><i>2</i><div>Your PC</div></li>
+    <li data-s="2" style="--c:#3d8fd1"><i>3</i><div>Options</div></li>
+    <li data-s="3" style="--c:#e2452f"><i>4</i><div>Install</div></li>
+  </ol>
+  <div class="legal" id="legal"></div>
+</aside>
+<main>
+  <section class="page" data-p="0">
+    <h1>Welcome to Washi</h1>
+    <p class="lead">A calm, modern PDF editor. Read, comment, edit text, sign, fill forms, organise pages, protect and convert — all on your own PC.</p>
+    <div class="feats">
+      <div style="--c:#27407a"><b>Edit & comment</b><span>Highlights, notes, shapes, stamps, edit text, add images and signatures.</span></div>
+      <div style="--c:#6f9a33"><b>Organise pages</b><span>Reorder, rotate, insert, extract, split, merge, crop, number and watermark.</span></div>
+      <div style="--c:#d99a17"><b>Protect & convert</b><span>Passwords, true redaction, forms, Word / text / image export, smaller files.</span></div>
+      <div style="--c:#e2452f"><b>Local AI</b><span>On Ryzen AI PCs: summaries, questions about your document and a guide to the app.</span></div>
+    </div>
+    <div class="license" id="license"></div>
+    <div class="foot"><button class="btn primary" data-next>Agree and continue</button></div>
+  </section>
+  <section class="page" data-p="1">
+    <h1>Checking your PC</h1>
+    <p class="lead">Washi needs nothing else installed. Here is what it found.</p>
+    <div id="checks"><div class="check"><span>Checking…</span></div></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next id="toOpts" disabled>Continue</button></div>
+  </section>
+  <section class="page" data-p="2">
+    <h1>Options</h1>
+    <p class="lead">Washi installs for your user account only — no administrator rights needed.</p>
+    <div class="card"><b>Install folder</b><div class="dir"><input id="dir" spellcheck="false"><button class="btn" id="browse">Browse…</button></div><small id="dir-note"></small></div>
+    <div class="card">
+      <label class="opt"><input type="checkbox" id="desk" checked><div>Desktop shortcut</div></label>
+      <label class="opt"><input type="checkbox" id="menu" checked><div>Start menu shortcut</div></label>
+      <label class="opt"><input type="checkbox" id="openwith" checked><div>Offer Washi in “Open with” for PDF files<small>You decide later whether it becomes your default PDF app.</small></div></label>
+    </div>
+    <div class="card ai" id="aiCard"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" id="go">Install</button></div>
+  </section>
+  <section class="page" data-p="3">
+    <h1 id="instTitle">Installing…</h1>
+    <p class="lead" id="instLead">This takes a few seconds.</p>
+    <div class="prog" id="prog"></div>
+    <div id="instErr"></div>
+    <div class="done-art" id="doneArt" style="display:none"><img src="/logo.png" alt=""></div>
+    <div class="card" id="defCard" style="display:none"><b>Open PDFs with Washi</b>
+      <div style="color:var(--ink-2);font-size:13px;margin:3px 0 10px">Windows lets only you choose the default app. Press the button, then pick Washi for “.pdf” on the page that opens.</div>
+      <button class="btn" id="defBtn">Make Washi my default PDF app</button></div>
+    <div class="foot"><button class="btn ghost" id="close" style="display:none">Close</button><button class="btn primary" id="launch" style="display:none">Open Washi</button></div>
+  </section>
+</main>
+<script>
+const TOKEN = "{{TOKEN}}";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const get = (p) => fetch(p, { headers: { "X-Setup": TOKEN } }).then((r) => r.json());
+const post = (p, b = {}) => fetch(p, { method: "POST", headers: { "X-Setup": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(b) }).then((r) => r.json());
+let page = 0, info = null;
+function show(n) {
+  page = n;
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("on", +p.dataset.p === n));
+  document.querySelectorAll(".steps li").forEach((l) => { l.classList.toggle("on", +l.dataset.s === n); l.classList.toggle("done", +l.dataset.s < n); });
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-next]")) show(page + 1);
+  if (e.target.closest("[data-back]")) show(page - 1);
+  const a = e.target.closest("a[data-url]");
+  if (a) { e.preventDefault(); post("/api/open", { url: a.dataset.url }); }
+});
+setInterval(() => post("/api/ping"), 3000);
+post("/api/ping");
+const splash = $("#splash");
+const hide = () => splash.classList.add("out");
+splash.onclick = hide;
+setTimeout(hide, 1500);
+show(0);
+
+(async function load() {
+  info = await get("/api/info");
+  if (info.test) document.body.insertAdjacentHTML("beforeend", '<div class="test">TEST MODE</div>');
+  $("#ver").textContent = `Version ${info.version} · setup`;
+  $("#license").textContent = info.license;
+  $("#legal").innerHTML = `${esc(info.copyright)}<br>Free software · <a href="#" data-url="https://opensource.org/license/mit">MIT License</a><br>Uses PyMuPDF · <a href="#" data-url="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a>`;
+  const mark = { ok: "✓", warn: "!", bad: "×", info: "i" };
+  $("#checks").innerHTML = info.checks.map((c) => `<div class="check"><span class="dot ${c.status}">${mark[c.status]}</span><div><b>${esc(c.label)}</b><span>${esc(c.value)}</span>${c.note ? `<small>${esc(c.note)}</small>` : ""}</div></div>`).join("")
+    + (info.can_install ? "" : `<div class="err">Washi can't be installed on this PC (see above).</div>`);
+  $("#toOpts").disabled = !info.can_install;
+  $("#dir").value = info.default_dir;
+  dirNote();
+  const ai = info.ai;
+  $("#aiCard").innerHTML = ai.supported
+    ? `<label class="opt"><input type="checkbox" id="ai" ${ai.flm && ai.model ? "" : "checked"}><div><b>Set up local AI on your ${esc(ai.npu || "NPU")}</b>
+        <small>${ai.flm && ai.model ? "FastFlowLM and the qwen3:4b model are already installed — nothing to download." : `${ai.flm ? "" : `Installs the free FastFlowLM engine ${esc(ai.flm_version || "")} (checked against its known fingerprint; Windows asks for permission; by installing it you accept <a href="#" data-url="${esc(ai.flm_license || "")}">its licence</a>) and `}downloads the qwen3:4b model (about 3.1 GB). You can also do this later from inside Washi.`}</small></div></label>`
+    : `<b>Local AI</b><div style="color:var(--ink-2);font-size:13px;margin-top:3px">${esc(ai.reason)}. Washi works fully; the AI assistant stays switched off on this PC.</div>`;
+})();
+
+$("#browse").onclick = async () => { const r = await post("/api/browse", { dir: $("#dir").value }); if (r.dir) $("#dir").value = r.dir; dirNote(); };
+// the app always gets a folder of its own, so uninstalling can't take anything else with it
+function dirNote() {
+  const v = $("#dir").value.trim().replace(/[\\/]+$/, ""), app = info.app;
+  const final = v.split(/[\\/]/).pop().toLowerCase() === app.toLowerCase() ? v : `${v}\\${app}`;
+  $("#dir-note").textContent = v ? `${app} goes into its own folder: ${final}` : "";
+}
+$("#dir").addEventListener("input", dirNote);
+$("#go").onclick = async () => {
+  show(3);
+  await post("/api/install", { dir: $("#dir").value, desktop: $("#desk").checked, startmenu: $("#menu").checked, openwith: $("#openwith").checked, ai: !!($("#ai") && $("#ai").checked) });
+  poll();
+};
+async function poll() {
+  const p = await get("/api/progress");
+  $("#prog").innerHTML = p.steps.map((s) => `<div class="ps ${s.state}"><b><span class="st"></span>${esc(s.label)}</b>${s.detail ? `<small>${esc(s.detail)}</small>` : ""}${s.pct != null && s.state === "active" ? `<div class="bar"><i style="width:${s.pct}%"></i></div>` : ""}</div>`).join("");
+  if (p.running || (!p.done && !p.error)) return setTimeout(poll, 600);
+  if (p.error) {
+    $("#instTitle").textContent = "Something went wrong";
+    $("#instLead").textContent = "";
+    $("#instErr").innerHTML = `<div class="err">${esc(p.error)}</div>`;
+    $("#close").style.display = "";
+  } else {
+    $("#instTitle").textContent = "Washi is ready";
+    $("#instLead").textContent = "Find it on your desktop and in the Start menu. Drop any PDF on it to open it.";
+    $("#doneArt").style.display = "";
+    $("#launch").style.display = ""; $("#close").style.display = "";
+    if ($("#openwith").checked && !info.test) $("#defCard").style.display = "";
+    document.querySelectorAll(".steps li").forEach((l) => l.classList.add("done"));
+  }
+}
+$("#launch").onclick = async () => { await post("/api/launch"); setTimeout(() => window.close(), 400); };
+$("#close").onclick = () => window.close();
+$("#defBtn").onclick = () => post("/api/default_app");
+</script>
+</body>
+</html>

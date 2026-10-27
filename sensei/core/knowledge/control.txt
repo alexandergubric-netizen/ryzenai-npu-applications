@@ -1,0 +1,405 @@
+# Controlling Windows: sound, screen, theme, power, timers, clipboard, opening and closing apps.
+# Sensei helpers used here live in core/SenseiTools.psm1 and were tested on this PC.
+
+## Sound
+
+? set the volume to {percent} | volume {percent} | change volume to {percent} | put the sound at {percent} | turn the volume to {percent} | turn the volume down to {percent} | turn the sound down to {percent} | turn the volume up to {percent} | turn it up to {percent}
+Set-AudioVolume -Percent {{percent}}
+= Sets the speaker volume to {percent}% (Sensei helper).
+
+? mute | mute the volume | mute the sound | mute my pc | silence the computer | turn the sound off
+Set-AudioVolume -Mute
+= Mutes the speakers.
+
+? unmute | unmute the volume | unmute the sound | turn the sound on | sound on
+Set-AudioVolume -Unmute
+= Unmutes the speakers.
+
+? volume up | turn the volume up | louder | increase volume by {percent} | make it louder | volume up {percent}
+Set-AudioVolume -Up {{percent}}
+= Raises the volume by {percent} points.
+& percent=10
+
+? volume down | turn the volume down | quieter | decrease volume by {percent} | make it quieter | lower the volume
+Set-AudioVolume -Down {{percent}}
+= Lowers the volume by {percent} points.
+& percent=10
+
+? max volume | full volume | volume to maximum | loudest
+Set-AudioVolume -Percent 100
+= Sets the volume to 100%.
+
+? what is the volume | current volume | how loud is it | volume level | is the sound muted
+Get-AudioVolume
+= Shows the volume in percent and whether it is muted.
+
+? say {text} | speak {text} | read {text} aloud | text to speech {text}
+Out-Speech -Text '{{text}}'
+= Reads "{text}" aloud with the Windows voice.
+
+? read {file} aloud | speak the text of {file}
+Out-Speech -Text (Get-Content -Path "{{folder}}\{{file}}" -Raw)
+= Reads the contents of {file} aloud.
+& folder=.
+
+? sound settings | open sound settings | change speakers | output device
+Start-Process "ms-settings:sound"
+= Opens Sound settings, where you pick speakers and microphone.
+
+? sound devices | audio devices | speakers and microphones | list sound cards
+Get-CimInstance Win32_SoundDevice | Select-Object Name, Status
+= Lists the sound devices.
+
+## Screen
+
+? set brightness to {percent} | set screen brightness to {percent} | brightness {percent} | screen brightness {percent} | change the brightness to {percent} | dim the screen to {percent}
+Set-ScreenBrightness -Percent {{percent}}
+= Sets the laptop screen brightness to {percent}% (Sensei helper).
+
+? brightness up | increase brightness | make the screen brighter
+Set-ScreenBrightness -Percent ([math]::Min(100, (Get-ScreenBrightness).BrightnessPercent + 20))
+= Makes the screen 20 points brighter.
+
+? brightness down | decrease brightness | make the screen darker | dim the screen
+Set-ScreenBrightness -Percent ([math]::Max(0, (Get-ScreenBrightness).BrightnessPercent - 20))
+= Makes the screen 20 points darker.
+
+? what is the brightness | current brightness | how bright is the screen
+Get-ScreenBrightness
+= Shows the screen brightness in percent.
+
+? dark mode | turn on dark mode | switch to dark theme | dark theme | night mode for windows
+Set-DarkMode
+= Switches Windows and apps to dark mode.
+
+? is dark mode on | which theme is on | am I in dark mode
+if ((Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize').AppsUseLightTheme -eq 0) { 'Dark mode is on.' } else { 'Light mode is on.' }
+= Tells you whether Windows uses dark or light mode.
+
+? light mode | turn off dark mode | switch to light theme | light theme
+Set-DarkMode -Off
+= Switches Windows and apps to light mode.
+
+? set wallpaper to {file} | change my wallpaper to {file} | use {file} as wallpaper | make {file} my background | change the desktop background to {file}
+Set-Wallpaper -Path "{{folder}}\{{file}}"
+= Sets {file} as the desktop wallpaper.
+& folder=.
+
+? night light | turn on night light | blue light filter
+Start-Process "ms-settings:nightlight"
+= Opens Night light settings (Windows has no command to switch it directly).
+
+? screen resolution | what resolution is my screen | refresh rate | display info
+Get-CimInstance Win32_VideoController | Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate
+= Shows the resolution and refresh rate of each display adapter.
+
+? monitors | connected displays | which monitors are connected
+Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID -ErrorAction SilentlyContinue | ForEach-Object { [pscustomobject]@{ Maker = -join [char[]]($_.ManufacturerName -ne 0); Model = -join [char[]]($_.UserFriendlyName -ne 0); Serial = -join [char[]]($_.SerialNumberID -ne 0) } }
+= Lists the connected monitors with maker and model.
+
+? display settings | change resolution | scale settings | open display settings
+Start-Process "ms-settings:display"
+= Opens Display settings.
+
+? take a screenshot | screenshot | capture the screen | print screen | save a screenshot
+Save-Screenshot
+= Saves the whole screen as a PNG in Pictures\Screenshots (Sensei helper).
+
+? take a screenshot in {seconds} | screenshot after {seconds} | delayed screenshot
+Save-Screenshot -Delay {{seconds}}
+= Waits {seconds} seconds, then saves the whole screen in Pictures\Screenshots.
+& seconds=5
+
+? screenshot of an area | snip | snipping tool | screenshot of part of the screen | screen clip
+Start-Process "ms-screenclip:"
+= Opens the snipping overlay so you can drag over the area to capture.
+
+? open the screenshots folder | where are my screenshots | show me my screenshots folder
+Invoke-Item "$([Environment]::GetFolderPath('MyPictures'))\Screenshots"
+= Opens Pictures\Screenshots.
+
+? show hidden files in explorer | show file extensions | show hidden files and extensions in file explorer
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name Hidden -Value 1; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name HideFileExt -Value 0; 'Explorer now shows hidden files and file extensions (reopen its windows).'
+= Makes File Explorer show hidden files and file extensions.
+
+? hide hidden files in explorer | hide file extensions again
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name Hidden -Value 2; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name HideFileExt -Value 1; 'Explorer hides hidden files and extensions again.'
+= Puts File Explorer back to hiding hidden files and extensions.
+
+? minimize all windows | show the desktop | hide all windows
+(New-Object -ComObject Shell.Application).MinimizeAll()
+= Minimizes every window.
+
+? restore windows | undo minimize all | bring windows back
+(New-Object -ComObject Shell.Application).UndoMinimizeALL()
+= Restores the windows minimized by "minimize all".
+
+## Power
+
+? lock the pc | lock my computer | lock screen | lock windows | lock
+rundll32.exe user32.dll,LockWorkStation
+= Locks Windows immediately.
+
+? sleep | put the pc to sleep | sleep mode | go to sleep | suspend
+Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.Application]::SetSuspendState('Suspend', $false, $false)
+= Puts the PC to sleep now.
+
+? sleep in {minutes} | put the pc to sleep in {minutes} | sleep timer {minutes} | go to sleep in {minutes}
+Start-SleepTimer -Minutes {{minutes}}
+= Puts the PC to sleep in {minutes} minutes. Cancel it with "cancel shutdown" (Sensei helper).
+
+? turn off the screen | screen off | turn off the display | switch off the monitor | blank the screen
+Set-ScreenOff
+= Turns the display off now; move the mouse to wake it (Sensei helper).
+
+? hibernate | hibernate the pc
+shutdown.exe /h
+= Hibernates the PC now (only works when hibernation is enabled).
+
+? sign out | log off | log out | sign me out
+shutdown.exe /l
+= Signs you out of Windows now. Save your work first.
+
+? shut down | shut down the pc | turn off the computer | power off | shut down now
+Stop-Computer
+= Shuts down the PC right away.
+
+? restart | restart the pc | reboot now | restart the computer | restart windows
+Restart-Computer
+= Restarts the PC right away.
+
+? shut down at {time} | turn off the pc at {time} | shutdown at {time} | power off at {time}
+Start-Shutdown -At '{{time}}'
+= Shuts down at {time}. Cancel it with "cancel shutdown".
+
+? shut down in {minutes} | turn off the pc in {minutes} | shutdown timer {minutes} | power off after {minutes} | shut down after {minutes}
+Start-Shutdown -InMinutes {{minutes}}
+= Shuts down in {minutes} minutes. Cancel it with "cancel shutdown".
+
+? restart in {minutes} | reboot in {minutes} | restart after {minutes}
+Start-Shutdown -InMinutes {{minutes}} -Restart
+= Restarts in {minutes} minutes. Cancel it with "cancel shutdown".
+
+? restart at {time} | reboot at {time}
+Start-Shutdown -At '{{time}}' -Restart
+= Restarts at {time}. Cancel it with "cancel shutdown".
+
+? cancel shutdown | abort shutdown | stop the shutdown timer | cancel restart | do not shut down
+Stop-Shutdown
+= Cancels a scheduled shutdown or restart.
+
+? restart into bios | restart to uefi | open bios settings
+shutdown.exe /r /fw /t 0
+= Restarts straight into the BIOS/UEFI setup.
+! admin
+
+? restart to advanced startup | restart into recovery | boot to safe mode options
+shutdown.exe /r /o /t 0
+= Restarts into the advanced startup menu (safe mode, recovery, startup repair).
+
+? never sleep | set the pc to never sleep | keep the pc awake | disable sleep | stop the pc from sleeping | turn off sleep
+powercfg /change standby-timeout-ac 0; powercfg /change standby-timeout-dc 0; 'Sleep is off (plugged in and on battery).'
+= Turns automatic sleep off.
+
+? sleep after {minutes} of inactivity | set sleep timeout to {minutes} | sleep timeout {minutes} | automatic sleep after {minutes}
+powercfg /change standby-timeout-ac {{minutes}}; powercfg /change standby-timeout-dc {{minutes}}; 'Sleep after {{minutes}} minutes.'
+= Sleeps automatically after {minutes} minutes without use.
+
+? screen off after {minutes} | turn the display off after {minutes} | screen timeout {minutes}
+powercfg /change monitor-timeout-ac {{minutes}}; powercfg /change monitor-timeout-dc {{minutes}}; 'Screen turns off after {{minutes}} minutes.'
+= Turns the screen off after {minutes} minutes without use.
+
+? never turn off the screen | keep the screen on | disable screen timeout
+powercfg /change monitor-timeout-ac 0; powercfg /change monitor-timeout-dc 0; 'The screen stays on.'
+= Keeps the screen on.
+
+? power plans | which power plan | list power plans
+powercfg /list
+= Lists power plans; the active one has a star.
+
+? high performance mode | best performance | power plan high performance
+powercfg /setactive SCHEME_MIN; powercfg /getactivescheme
+= Switches to the High performance power plan (if your PC offers it).
+
+? balanced power plan | balanced mode
+powercfg /setactive SCHEME_BALANCED; powercfg /getactivescheme
+= Switches to the Balanced power plan.
+
+? power saver | battery saver mode | power saving plan
+powercfg /setactive SCHEME_MAX; powercfg /getactivescheme
+= Switches to the Power saver plan (if your PC offers it).
+
+? power settings | sleep settings | open power options
+Start-Process "ms-settings:powersleep"
+= Opens Power & sleep settings.
+
+## Timers and reminders
+
+? timer {minutes} | set a timer for {minutes} | start a {minutes} timer | countdown {minutes} | alarm in {minutes} | {minutes} timer
+Start-Timer -Seconds {{seconds}}
+= Pops up and beeps in {minutes} minutes; runs in the background (Sensei helper).
+& seconds=300 ; minutes=5
+
+? remind me to {text} in {minutes} | reminder in {minutes} to {text} | remind me in {minutes} to {text}
+Start-Timer -Seconds {{seconds}} -Message '{{text}}'
+= Pops up "{text}" in {minutes} minutes.
+& seconds=600 ; minutes=10
+
+? remind me at {time} to {text} | reminder at {time}
+$m = [math]::Ceiling(((Get-Date '{{time}}') - (Get-Date)).TotalMinutes); if ($m -le 0) { $m += 1440 }; Start-Timer -Minutes $m -Message '{{text}}'
+= Pops up "{text}" at {time}.
+& text=Reminder
+
+? stopwatch | start a stopwatch | measure time
+$global:SenseiWatch = [Diagnostics.Stopwatch]::StartNew(); 'Stopwatch started. Ask "stop the stopwatch" to see the time.'
+= Starts a stopwatch in Sensei's session.
+
+? stop the stopwatch | how long since the stopwatch | stopwatch time
+if ($global:SenseiWatch) { $global:SenseiWatch.Stop(); 'Elapsed: {0:hh\:mm\:ss\.f}' -f $global:SenseiWatch.Elapsed } else { 'No stopwatch is running.' }
+= Shows the time since the stopwatch started.
+
+## Clipboard
+
+? copy {text} to the clipboard | put {text} on the clipboard | clipboard {text}
+Set-Clipboard -Value '{{text}}'; 'Copied.'
+= Copies "{text}" to the clipboard.
+
+? what is in the clipboard | show clipboard | paste | clipboard content
+Get-Clipboard
+= Prints the text on the clipboard.
+
+? clear the clipboard | empty clipboard
+Set-Clipboard -Value ' '; 'Clipboard cleared.'
+= Replaces the clipboard content with a blank.
+
+? copy {file} to the clipboard | copy the text of {file}
+Get-Content -Path "{{folder}}\{{file}}" -Raw | Set-Clipboard; 'Copied the text of {{file}}.'
+= Copies the text of {file} to the clipboard.
+& folder=.
+
+? clipboard history | open clipboard history
+Start-Process "ms-settings:clipboard"
+= Opens clipboard settings (press Win+V for the history).
+
+## Apps
+
+? open {app} | start {app} | launch {app} | run {app}
+Start-Process "{{app|launch}}"
+= Starts {app}.
+
+? close {app} | quit {app} | exit {app} | close all {app} windows
+Close-App -Name "{{app|process}}"
+= Asks {app} to close normally (it may ask to save) (Sensei helper).
+
+? kill {app} | force close {app} | end {app} | stop {app} | terminate {app} | {app} is frozen
+Stop-Process -Name "{{app|process}}" -Force
+= Ends every {app} process immediately (unsaved work is lost).
+
+? restart {app} | relaunch {app} | reopen {app}
+Close-App -Name "{{app|process}}" -Force; Start-Sleep -Seconds 1; Start-Process "{{app|launch}}"
+= Closes {app} and starts it again.
+
+? is {app} running | check if {app} is open | is {app} open
+$p = Get-Process -Name "{{app|process}}" -ErrorAction SilentlyContinue; if ($p) { "{{app|name}} is running ($(@($p).Count) processes)." } else { "{{app|name}} is not running." }
+= Tells you whether {app} is running.
+
+? how much memory does {app} use | ram used by {app} | {app} memory | how much ram is {app} using
+$p = Get-Process -Name "{{app|process}}" -ErrorAction SilentlyContinue; if ($p) { "{{app|name}}: {0:N0} MB in {1} processes" -f (($p | Measure-Object WorkingSet64 -Sum).Sum / 1MB), @($p).Count } else { "{{app|name}} is not running." }
+= Adds up the memory of all {app} processes.
+
+? where is {app} installed | path of {app} | location of {app}
+$p = Get-Process -Name "{{app|process}}" -ErrorAction SilentlyContinue | Where-Object Path | Select-Object -First 1; if ($p) { $p.Path } else { (Get-Command "{{app|launch}}" -ErrorAction SilentlyContinue).Source }
+= Shows the program file of {app}.
+
+? open settings | windows settings | settings app
+Start-Process "ms-settings:"
+= Opens Windows Settings.
+
+? open {page} | {page} | go to {page} | show {page}
+Start-Process "{{page}}"
+= Opens that page of Windows Settings.
+
+? open control panel | control panel
+control.exe
+= Opens the classic Control Panel.
+
+? open task manager | task manager
+Start-Process taskmgr
+= Opens Task Manager.
+
+? open device manager | device manager
+Start-Process devmgmt.msc
+= Opens Device Manager.
+
+? open disk management | disk management | partitions tool
+Start-Process diskmgmt.msc
+= Opens Disk Management.
+
+? open services | services window
+Start-Process services.msc
+= Opens the Services window.
+
+? open event viewer | event viewer
+Start-Process eventvwr.msc
+= Opens Event Viewer.
+
+? open registry editor | regedit
+Start-Process regedit
+= Opens the Registry Editor.
+
+? open programs and features | uninstall programs window | add or remove programs
+Start-Process appwiz.cpl
+= Opens Programs and Features.
+
+? open network connections | network adapters window | ncpa
+Start-Process ncpa.cpl
+= Opens Network Connections.
+
+? open system properties | advanced system settings | environment variables window
+Start-Process SystemPropertiesAdvanced.exe
+= Opens System Properties (environment variables, performance, startup).
+
+? open system information | msinfo | msinfo32
+Start-Process msinfo32
+= Opens the System Information tool.
+
+? open resource monitor | resource monitor
+Start-Process resmon
+= Opens Resource Monitor (CPU, disk, network, memory per process).
+
+? open a website {url} | open {url} | go to {url} | browse {url}
+Start-Process "{{url}}"
+= Opens {url} in your default browser.
+
+? open {host} | go to {host} | open the website {host} | browse {host}
+Start-Process "https://{{host}}"
+= Opens https://{host} in your default browser.
+
+? search the web for {text} | google {text} | search online for {text}
+Start-Process "https://www.bing.com/search?q=$([uri]::EscapeDataString('{{text}}'))"
+= Searches the web for "{text}" in your browser.
+
+? open the recycle bin | show recycle bin
+Start-Process "shell:RecycleBinFolder"
+= Opens the Recycle Bin.
+
+? empty the recycle bin | clear the recycle bin | empty trash
+Clear-RecycleBin -Force -ErrorAction SilentlyContinue; 'Recycle Bin emptied.'
+= Empties the Recycle Bin on all drives (this cannot be undone).
+
+? restart explorer | taskbar is frozen | restart the start menu | restart the taskbar
+Stop-Process -Name explorer -Force
+= Restarts File Explorer and the taskbar; Windows starts it again automatically.
+
+? open a new powershell window | new terminal | open terminal here
+Start-Process pwsh -WorkingDirectory (Get-Location).Path
+= Opens a new PowerShell window in the current folder.
+
+? open powershell as administrator | admin terminal | run powershell as admin | elevated powershell
+Start-Process pwsh -Verb RunAs
+= Opens PowerShell as administrator (Windows asks first).
+
+? open {file} as administrator | run {file} as admin
+Start-Process -FilePath "{{folder}}\{{file}}" -Verb RunAs
+= Runs {file} as administrator (Windows asks first).
+& folder=.

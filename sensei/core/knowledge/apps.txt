@@ -1,0 +1,234 @@
+# Programs, processes, services and startup. winget gets --accept flags so it never waits for a prompt.
+
+## Install and update
+
+? install {app} | download and install {app} | get {app} | add {app} | setup {app}
+winget install --id {{app|winget}} --exact --accept-source-agreements --accept-package-agreements --disable-interactivity
+= Installs {app} with winget.
+
+? install {pkg} | download and install {pkg}
+winget install "{{pkg}}" --accept-source-agreements --accept-package-agreements --disable-interactivity
+= Installs "{pkg}" with winget. If several apps match, winget lists them: then install the right one by its Id.
+
+? uninstall {app} | remove {app} | delete {app} | get rid of {app}
+winget uninstall --id {{app|winget}} --exact --accept-source-agreements --disable-interactivity
+= Uninstalls {app}.
+
+? uninstall {pkg} | remove the program {pkg}
+winget uninstall "{{pkg}}" --accept-source-agreements --disable-interactivity
+= Uninstalls "{pkg}". If several programs match, winget lists them.
+
+? update {app} | upgrade {app} | get the latest {app}
+winget upgrade --id {{app|winget}} --exact --accept-source-agreements --accept-package-agreements --disable-interactivity
+= Updates {app} to the newest version.
+
+? update {pkg} | upgrade {pkg}
+winget upgrade "{{pkg}}" --accept-source-agreements --accept-package-agreements --disable-interactivity
+= Updates "{pkg}" to the newest version.
+
+? update all apps | upgrade everything | update all my programs | update all software | update everything
+winget upgrade --all --accept-source-agreements --accept-package-agreements --disable-interactivity
+= Updates every app winget can update. Some installers may still show their own window.
+
+? which apps have updates | check for app updates | outdated programs | what can be updated
+winget upgrade --accept-source-agreements --disable-interactivity
+= Lists apps with a newer version available.
+
+? search for {pkg} | find an app {text} | search winget for {text} | is there an app for {text}
+winget search "{{pkg}}" --accept-source-agreements --disable-interactivity
+= Searches the winget catalog; install with the Id it shows.
+
+? search for {app} in winget | find {app} in the store
+winget search "{{app|name}}" --accept-source-agreements --disable-interactivity
+= Searches the winget catalog for {app}.
+
+? is {app} installed | do I have {app} | check if {app} is installed | version of {app} | which version of {app}
+winget list --id {{app|winget}} --accept-source-agreements --disable-interactivity
+= Shows {app} with its version if it is installed.
+
+? is {pkg} installed | do I have {pkg}
+winget list "{{pkg}}" --accept-source-agreements --disable-interactivity
+= Shows "{pkg}" if it is installed.
+
+## Installed programs
+
+? how much space does {app} use | size of the {app} folder | how big is {app} | where is {app} folder | disk space used by {app}
+$e = Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like '*{{app|name}}*' -and $_.InstallLocation } | Select-Object -First 1; if ($e) { Get-FolderSize -Path $e.InstallLocation } else { $p = Get-Process -Name "{{app|process}}" -ErrorAction SilentlyContinue | Where-Object Path | Select-Object -First 1; if ($p) { Get-FolderSize -Path (Split-Path $p.Path) } else { "Could not find where {{app|name}} is installed." } }
+= Finds where {app} is installed and adds up its folder.
+
+? installed programs | list installed software | what apps are installed | all my programs | installed apps | list all the apps on this computer | apps on this pc | what programs do I have
+Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -and -not $_.SystemComponent } | Sort-Object DisplayName -Unique | Select-Object DisplayName, DisplayVersion, Publisher
+= Lists installed desktop programs with version and publisher.
+
+? recently installed programs | what did I install recently | newest installed apps
+Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -and $_.InstallDate } | Sort-Object InstallDate -Descending | Select-Object -First 20 DisplayName, DisplayVersion, @{n='Installed';e={[datetime]::ParseExact($_.InstallDate,'yyyyMMdd',$null).ToString('yyyy-MM-dd')}}
+= Lists the 20 most recently installed programs.
+
+? largest programs | biggest installed apps | which programs take the most space
+Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -and $_.EstimatedSize } | Sort-Object EstimatedSize -Descending | Select-Object -First 20 DisplayName, @{n='SizeMB';e={[math]::Round($_.EstimatedSize/1KB)}}
+= Lists the 20 biggest installed programs (size as reported by their installers).
+
+? programs installed with winget | winget list
+winget list --accept-source-agreements --disable-interactivity
+= Lists installed apps that winget knows about.
+
+? store apps | microsoft store apps | appx packages
+Get-AppxPackage | Where-Object { -not $_.IsFramework } | Sort-Object Name | Select-Object Name, Version
+= Lists Microsoft Store apps installed for your user.
+
+? .net versions | dotnet installed | dotnet sdks
+dotnet --list-sdks; dotnet --list-runtimes
+= Lists installed .NET SDKs and runtimes.
+
+? python version | which python | is python installed
+Get-Command python, py -ErrorAction SilentlyContinue | Select-Object Name, Version, Source
+= Shows which Python is on PATH and its version.
+
+## Processes
+
+? what is using my cpu | top cpu processes | which program is slowing down my pc | highest cpu | what is making my pc slow
+Get-CimInstance Win32_PerfFormattedData_PerfProc_Process | Where-Object { $_.Name -notin '_Total', 'Idle' } | Sort-Object PercentProcessorTime -Descending | Select-Object -First 10 @{n='Process';e={$_.Name}}, @{n='CPU%';e={[math]::Round($_.PercentProcessorTime / [Environment]::ProcessorCount, 1)}}, @{n='MemMB';e={[math]::Round($_.WorkingSetPrivate/1MB)}}, @{n='Id';e={$_.IDProcess}}
+= Shows the 10 processes using the most CPU right now.
+
+? what is using my memory | top memory processes | which programs use the most ram | what is eating my ram | highest memory
+Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 10 Name, Id, @{n='MemMB';e={[math]::Round($_.WorkingSet64/1MB)}}
+= Lists the 10 processes using the most memory.
+
+? processes using more than {size} of memory | programs using over {size} ram | apps that use more than {size} of ram
+Get-Process | Where-Object WorkingSet64 -gt {{size}} | Sort-Object WorkingSet64 -Descending | Select-Object Name, Id, @{n='MemMB';e={[math]::Round($_.WorkingSet64/1MB)}}
+= Lists processes using more than {size} of memory.
+& size=1GB
+
+? memory per app | total memory by program | ram grouped by program
+Get-Process | Group-Object Name | ForEach-Object { [pscustomobject]@{ Name = $_.Name; Count = $_.Count; MemMB = [math]::Round(($_.Group | Measure-Object WorkingSet64 -Sum).Sum / 1MB) } } | Sort-Object MemMB -Descending | Select-Object -First 15
+= Adds up memory for all processes of each program (all chrome.exe together, etc.).
+
+? list running programs | all processes | running processes | what is running
+Get-Process | Sort-Object Name | Select-Object Name, Id, @{n='MemMB';e={[math]::Round($_.WorkingSet64/1MB)}}, MainWindowTitle
+= Lists all running processes.
+
+? open windows | which windows are open | apps with a window
+Get-Process | Where-Object MainWindowTitle | Select-Object Name, Id, MainWindowTitle
+= Lists programs that have a window open.
+
+? kill process {n} | end process id {n} | stop pid {n}
+Stop-Process -Id {{n}} -Force
+= Ends the process with ID {n}.
+
+? kill {name} | stop the process {name} | end the process {name}
+Stop-Process -Name "{{name}}" -Force
+= Ends every process called {name}.
+
+? programs not responding | frozen apps | hung programs | which app is frozen
+Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and -not $_.Responding } | Select-Object Name, Id, MainWindowTitle
+= Lists windows that Windows reports as Not Responding.
+
+? kill frozen apps | close programs that are not responding | end all hung programs
+Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and -not $_.Responding } | Stop-Process -Force -PassThru | Select-Object Name, Id
+= Ends every program that is Not Responding.
+
+? process command lines | how was {app} started | command line of {app}
+Get-CimInstance Win32_Process -Filter "Name like '{{app|process}}%'" | Select-Object ProcessId, Name, CommandLine
+= Shows the full command line of each {app} process.
+
+? recently started processes | newest processes
+Get-Process | Where-Object StartTime | Sort-Object StartTime -Descending | Select-Object -First 15 Name, Id, StartTime
+= Lists the 15 most recently started processes.
+
+? set {app} to high priority | give {app} more cpu | prioritize {app}
+Get-Process -Name "{{app|process}}" | ForEach-Object { $_.PriorityClass = 'High'; $_ } | Select-Object Name, Id, PriorityClass
+= Gives {app} high CPU priority until it closes.
+
+## Startup
+
+? startup programs | what starts with windows | autostart apps | programs that run at startup | startup apps
+Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, Location
+= Lists programs that start automatically when you sign in.
+
+? disable {app} at startup | stop {app} from starting automatically | remove {app} from startup
+$names = Get-CimInstance Win32_StartupCommand | Where-Object { $_.Name -like '*{{app|name}}*' -or $_.Command -like '*{{app|process}}*' }; if (-not $names) { 'No startup entry found for {{app|name}}.' } else { foreach ($n in $names) { foreach ($k in 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder') { if (-not (Test-Path $k)) { New-Item -Path $k -Force | Out-Null } }; $key = if ($n.Location -like '*Startup*') { 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder' } else { 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run' }; Set-ItemProperty -Path $key -Name $n.Name -Value ([byte[]](3,0,0,0,0,0,0,0,0,0,0,0)) -Type Binary; "Disabled at startup: $($n.Name)" } }
+= Switches off {app}'s startup entry the same way Task Manager does (turn it back on in Settings > Apps > Startup).
+
+? startup apps settings | manage startup apps
+Start-Process "ms-settings:startupapps"
+= Opens Settings > Apps > Startup, where you switch startup apps on and off.
+
+? open the startup folder | startup folder
+Invoke-Item "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
+= Opens your Startup folder; shortcuts in it start when you sign in.
+
+## Services
+
+? list running services | which services are running | running services
+Get-Service | Where-Object Status -eq 'Running' | Sort-Object DisplayName | Select-Object Name, DisplayName
+= Lists services that are running.
+
+? stopped services | services that are not running
+Get-Service | Where-Object Status -eq 'Stopped' | Sort-Object DisplayName | Select-Object Name, DisplayName, StartType
+= Lists services that are stopped.
+
+? automatic services that are stopped | services that failed to start | broken services
+Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' } | Select-Object Name, DisplayName, Status
+= Lists services set to start automatically that are not running.
+
+? status of {service} | is {service} running | {service} status | check {service}
+Get-Service -Name {{service}} | Select-Object Name, DisplayName, Status, StartType
+= Shows whether the {service} service is running and how it starts.
+
+? start {service} | start the {service} service
+Start-Service -Name {{service}} -PassThru | Select-Object Name, Status
+= Starts the {service} service.
+! admin
+
+? stop {service} | stop the {service} service
+Stop-Service -Name {{service}} -PassThru | Select-Object Name, Status
+= Stops the {service} service.
+! admin
+
+? restart {service} | restart the {service} service
+Restart-Service -Name {{service}} -PassThru | Select-Object Name, Status
+= Stops and starts the {service} service.
+! admin
+
+? disable {service} | disable the {service} service | stop {service} from starting
+Set-Service -Name {{service}} -StartupType Disabled; Get-Service -Name {{service}} | Select-Object Name, Status, StartType
+= Prevents the {service} service from starting. Use "enable" to undo.
+! admin
+
+? enable {service} | set {service} to automatic
+Set-Service -Name {{service}} -StartupType Automatic; Get-Service -Name {{service}} | Select-Object Name, Status, StartType
+= Lets the {service} service start automatically again.
+! admin
+
+? find a service {text} | search services for {text} | which service is {text}
+Get-Service -DisplayName "*{{text}}*" | Select-Object Name, DisplayName, Status, StartType
+= Finds services whose display name contains "{text}".
+
+? restart the print spooler | printer is stuck | fix printing
+Restart-Service -Name Spooler -Force -PassThru | Select-Object Name, Status
+= Restarts the print spooler, which unsticks most printing problems.
+! admin
+
+## Scheduled tasks
+
+? scheduled tasks | list scheduled tasks | which tasks are scheduled
+Get-ScheduledTask | Where-Object { $_.State -ne 'Disabled' -and $_.TaskPath -notlike '\Microsoft\*' } | Select-Object TaskName, TaskPath, State
+= Lists your enabled scheduled tasks (Windows' own tasks are hidden).
+
+? run {file} every day at {time} | schedule {file} daily at {time} | run a script every day
+$a = New-ScheduledTaskAction -Execute 'pwsh.exe' -Argument "-NoProfile -WindowStyle Hidden -File `"$((Resolve-Path "{{folder}}\{{file}}").Path)`""; Register-ScheduledTask -TaskName ('Sensei - {{file}}') -Action $a -Trigger (New-ScheduledTaskTrigger -Daily -At '{{time}}') | Select-Object TaskName, State
+= Runs {file} every day at {time} as your user.
+& folder=. ; time=09:00
+
+? run {file} at logon | start {file} when I sign in
+$a = New-ScheduledTaskAction -Execute 'pwsh.exe' -Argument "-NoProfile -WindowStyle Hidden -File `"$((Resolve-Path "{{folder}}\{{file}}").Path)`""; Register-ScheduledTask -TaskName ('Sensei - {{file}}') -Action $a -Trigger (New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME) | Select-Object TaskName, State
+= Runs {file} each time you sign in.
+& folder=.
+
+? delete the scheduled task {name} | remove task {name}
+Unregister-ScheduledTask -TaskName "{{name}}" -Confirm:$false; 'Task removed.'
+= Deletes the scheduled task {name}.
+
+? run the task {name} now | start scheduled task {name}
+Start-ScheduledTask -TaskName "{{name}}"; 'Started.'
+= Runs the scheduled task {name} right away.

@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kaizen 5S Setup</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root {
+  --bg: #f5f3ee; --surface: #fffefb; --surface-2: #efece5; --ink: #1c1b19; --ink-2: #4f4d48; --muted: #8a877f;
+  --line: #e4e0d6; --sort: #c8463d; --order: #cf8e1f; --shine: #2f7fc1; --std: #7a5cc0; --sustain: #2f9468;
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --jp: "Yu Gothic UI", "Yu Gothic", "Meiryo UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { font: 14px/1.5 var(--font); color: var(--ink); background: var(--bg); display: grid;
+  grid-template-columns: 300px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; }
+
+/* splash */
+.splash { position: fixed; inset: 0; z-index: 10; background: var(--ink); display: grid; place-items: center;
+  transition: opacity .6s var(--ease), visibility .6s; cursor: pointer; }
+.splash.out { opacity: 0; visibility: hidden; }
+.splash .mark { font: 200 150px/1 var(--jp); color: var(--bg); clip-path: inset(0 100% 0 0);
+  animation: brush 1.1s var(--ease) .15s forwards; }
+.splash .word { color: var(--bg); font: 300 22px var(--display); letter-spacing: .5em; text-align: center; margin-top: 18px;
+  opacity: 0; animation: up .7s var(--ease) .9s forwards; }
+.splash .dots { display: flex; gap: 10px; justify-content: center; margin-top: 22px; }
+.splash .dots i { width: 9px; height: 9px; border-radius: 50%; opacity: 0; animation: pop .4s var(--ease) forwards; }
+@keyframes brush { to { clip-path: inset(0 0 0 0); } }
+@keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: none; } }
+
+/* sidebar */
+aside { background: var(--ink); color: var(--bg); padding: 34px 28px 24px; display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand img { width: 52px; height: 52px; border-radius: 14px; box-shadow: 0 0 0 1px rgba(255,255,255,.12); }
+.brand b { font: 600 20px var(--display); display: block; }
+.brand span { font-size: 12px; opacity: .6; }
+.steps { list-style: none; padding: 0; margin: 46px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.steps li { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 12px; opacity: .45;
+  transition: all .35s var(--ease); }
+.steps li .k { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font: 17px var(--jp);
+  background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); transition: all .35s var(--ease); }
+.steps li small { display: block; font-size: 11px; opacity: .7; }
+.steps li.on { opacity: 1; background: rgba(255,255,255,.06); }
+.steps li.on .k { background: var(--c); color: #fff; }
+.steps li.done { opacity: .8; }
+.steps li.done .k { background: color-mix(in srgb, var(--c) 45%, transparent); color: #fff; }
+.legal { margin-top: auto; font-size: 11.5px; line-height: 1.6; opacity: .62; }
+.legal a { color: inherit; }
+
+/* main */
+main { position: relative; overflow: hidden; }
+.page { position: absolute; inset: 0; padding: 44px 52px 0; overflow-y: auto; opacity: 0; transform: translateX(30px);
+  pointer-events: none; transition: opacity .45s var(--ease), transform .45s var(--ease);
+  display: flex; flex-direction: column; }
+.page > * { flex-shrink: 0; }
+.page.on { opacity: 1; transform: none; pointer-events: auto; }
+.page.left { transform: translateX(-30px); }
+h1 { font: 600 30px/1.15 var(--display); margin: 0 0 10px; letter-spacing: -.02em; }
+.lead { color: var(--ink-2); font-size: 15px; max-width: 560px; margin: 0 0 26px; }
+/* The button bar sits at the bottom of the window: pushed down on short pages, pinned while long pages scroll. */
+.foot { position: sticky; bottom: 0; z-index: 2; margin: auto -52px 0; padding: 18px 52px; display: flex;
+  justify-content: flex-end; gap: 10px; background: var(--bg); border-top: 1px solid transparent;
+  transition: border-color .2s; }
+.page.scrolled .foot { border-top-color: var(--line); box-shadow: 0 -10px 24px -18px rgba(0,0,0,.35); }
+.page > :nth-last-child(2) { margin-bottom: 24px; }
+.btn { height: 40px; padding: 0 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  font-weight: 500; transition: all .2s var(--ease); display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { border-color: var(--ink-2); transform: translateY(-1px); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.five { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 6px 0 26px; }
+.five div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 12px;
+  animation: up .5s var(--ease) both; }
+.five b { font: 26px/1 var(--jp); color: var(--c); display: block; margin-bottom: 8px; }
+.five span { font-weight: 600; font-size: 13px; display: block; }
+.five small { color: var(--muted); font-size: 11.5px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+.license { max-height: 0; overflow: hidden; transition: max-height .5s var(--ease); }
+.license.on { max-height: 300px; overflow-y: auto; margin-top: 12px; }
+.license pre { white-space: pre-wrap; font: 11.5px/1.5 Consolas, monospace; color: var(--ink-2); margin: 0; }
+.link { background: none; border: 0; padding: 0; color: var(--shine); text-decoration: underline; }
+
+/* system check */
+.checks { display: flex; flex-direction: column; gap: 8px; }
+.check { display: grid; grid-template-columns: 30px 150px 1fr; gap: 12px; align-items: center; padding: 11px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; opacity: 0; transform: translateY(8px);
+  transition: all .4s var(--ease); }
+.check.in { opacity: 1; transform: none; }
+.check .st { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 14px; }
+.st.ok { background: var(--sustain); } .st.warn { background: var(--order); } .st.bad { background: var(--sort); }
+.st.info { background: var(--shine); }
+.check b { font-weight: 500; color: var(--ink-2); }
+.check .v { font-weight: 500; }
+.check .n { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+.verdict { margin-top: 16px; display: flex; gap: 16px; align-items: center; opacity: 0; transition: opacity .5s; }
+.verdict.in { opacity: 1; }
+.verdict .big { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font: 24px var(--jp); color: #fff; flex: none; }
+
+/* engines */
+.engines { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.engine { position: relative; text-align: left; background: var(--surface); border: 2px solid var(--line); border-radius: 18px;
+  padding: 20px 18px 18px; transition: all .3s var(--ease); display: flex; flex-direction: column; gap: 8px; }
+.engine:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 18px 40px -20px rgba(0,0,0,.3); }
+.engine.sel { border-color: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 18%, transparent); }
+.engine:disabled { opacity: .5; cursor: not-allowed; }
+.engine .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: var(--c); }
+.engine .ic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.engine h3 { margin: 6px 0 0; font: 600 16px var(--display); }
+.engine p { margin: 0; color: var(--ink-2); font-size: 12.5px; }
+.engine .meta { margin-top: auto; padding-top: 8px; font-size: 12px; color: var(--muted); }
+.badge { position: absolute; top: 14px; right: 14px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
+  background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
+.warnbox { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: color-mix(in srgb, var(--order) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--order) 35%, transparent); font-size: 13px; display: none; }
+.warnbox.on { display: block; }
+
+/* options */
+.row { display: flex; gap: 10px; }
+.input { flex: 1; height: 40px; border: 1px solid var(--line); border-radius: 12px; padding: 0 14px; font: inherit;
+  background: var(--surface); color: var(--ink); outline: none; }
+.input:focus { border-color: var(--ink-2); }
+.opt { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.opt:last-child { border: 0; }
+.opt input { width: 18px; height: 18px; accent-color: var(--ink); }
+label.h { display: block; font-size: 12px; color: var(--muted); margin: 0 0 8px; letter-spacing: .06em; text-transform: uppercase; }
+.summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+.summary div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.summary b { display: block; font: 600 20px var(--display); }
+.summary span { font-size: 12px; color: var(--muted); }
+
+/* progress */
+.prog { display: flex; flex-direction: column; gap: 10px; }
+.pstep { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px;
+  animation: up .4s var(--ease) both; }
+.pstep .t { display: flex; align-items: center; gap: 12px; font-weight: 500; }
+.pstep .s { width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font-size: 12px; }
+.pstep.active .s { border: 2.5px solid var(--line); border-top-color: var(--shine); animation: spin .8s linear infinite; }
+.pstep.done .s { background: var(--sustain); } .pstep.failed .s { background: var(--sort); } .pstep.skipped .s { background: var(--order); }
+.pstep .d { font-size: 12px; color: var(--muted); margin: 4px 0 0 34px; word-break: break-all; }
+.bar { height: 6px; border-radius: 4px; background: var(--surface-2); margin: 10px 0 0 34px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; border-radius: 4px; transition: width .5s var(--ease);
+  background: linear-gradient(90deg, var(--sort), var(--order), var(--shine), var(--std), var(--sustain)); background-size: 600px 100%; }
+.bar.indet i { width: 35% !important; animation: indet 1.3s var(--ease) infinite; }
+@keyframes indet { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.waitcard { border-color: var(--shine); background: color-mix(in srgb, var(--shine) 8%, var(--surface)); }
+.donebox { text-align: center; padding-top: 30px; }
+.donebox .mark { font: 200 110px/1 var(--jp); display: inline-block; clip-path: inset(0 100% 0 0); animation: brush 1s var(--ease) .1s forwards; }
+.err { color: var(--sort); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="splash" id="splash">
+  <div>
+    <div class="mark">整</div>
+    <div class="word">KAIZEN&nbsp;5S</div>
+    <div class="dots"><i style="background:var(--sort);animation-delay:1.1s"></i><i style="background:var(--order);animation-delay:1.18s"></i><i style="background:var(--shine);animation-delay:1.26s"></i><i style="background:var(--std);animation-delay:1.34s"></i><i style="background:var(--sustain);animation-delay:1.42s"></i></div>
+  </div>
+</div>
+
+<aside>
+  <div class="brand"><img src="/logo.png" alt=""><div><b>Kaizen 5S</b><span id="ver">Setup</span></div></div>
+  <ol class="steps" id="steps">
+    <li style="--c:var(--sort)"><span class="k">整</span><div>Welcome<small>Seiri</small></div></li>
+    <li style="--c:var(--order)"><span class="k">頓</span><div>Your PC<small>Seiton</small></div></li>
+    <li style="--c:var(--shine)"><span class="k">掃</span><div>AI engine<small>Seiso</small></div></li>
+    <li style="--c:var(--std)"><span class="k">潔</span><div>Options<small>Seiketsu</small></div></li>
+    <li style="--c:var(--sustain)"><span class="k">躾</span><div>Install<small>Shitsuke</small></div></li>
+  </ol>
+  <div class="legal" id="legal">© 2026 Alexander Gubric<br>Free and open source software<br>MIT License</div>
+</aside>
+
+<main>
+  <!-- 0 welcome -->
+  <section class="page" data-p="0">
+    <h1>Welcome to Kaizen 5S</h1>
+    <p class="lead">Kaizen tidies your PC with the Japanese 5S method. It finds files and programs you no longer use,
+      shows each one with a thumbnail and a one-line AI explanation, and helps you sort, clean and keep things in order.
+      The AI runs locally on your PC, and nothing is uploaded.</p>
+    <div class="five">
+      <div style="--c:var(--sort)"><b>整理</b><span>Sort</span><small>Let go of what you don’t use</small></div>
+      <div style="--c:var(--order);animation-delay:.06s"><b>整頓</b><span>Set in order</span><small>A place for everything</small></div>
+      <div style="--c:var(--shine);animation-delay:.12s"><b>清掃</b><span>Shine</span><small>Clear temp files and junk</small></div>
+      <div style="--c:var(--std);animation-delay:.18s"><b>清潔</b><span>Standardize</span><small>Clean, consistent names</small></div>
+      <div style="--c:var(--sustain);animation-delay:.24s"><b>躾</b><span>Sustain</span><small>Keep the habit</small></div>
+    </div>
+    <div class="card">
+      <b>© 2026 Alexander Gubric</b><br>
+      <span style="color:var(--ink-2)" id="licLead">Kaizen 5S is free and open source software, released under the MIT License.
+      You may use, copy, modify and share it freely.</span>
+      <button class="link" id="licBtn" style="margin-left:6px">Read the licence</button>
+      <div class="license" id="lic"><pre id="licText"></pre></div>
+    </div>
+    <div class="foot"><button class="btn primary" data-next>Check my PC →</button></div>
+  </section>
+
+  <!-- 1 system -->
+  <section class="page" data-p="1">
+    <h1>Checking your PC</h1>
+    <p class="lead">Setup looks at your hardware so it only installs what will actually work here.</p>
+    <div class="checks" id="checks"></div>
+    <div class="verdict card" id="verdict"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next id="sysNext" disabled>Choose the AI engine →</button></div>
+  </section>
+
+  <!-- 2 engine -->
+  <section class="page" data-p="2">
+    <h1>Choose the local AI</h1>
+    <p class="lead">Kaizen uses a small AI model (Qwen3 4B) to explain files and answer questions. It runs entirely on this PC.</p>
+    <div class="engines" id="engines"></div>
+    <div class="warnbox" id="drvWarn">Your NPU driver is older than FastFlowLM needs (32.0.203.311). Setup will still install it,
+      but please update the AMD NPU driver first. <button class="link" data-url="https://www.amd.com/en/support/download/drivers.html">Get the AMD driver</button></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next>Options →</button></div>
+  </section>
+
+  <!-- 3 options -->
+  <section class="page" data-p="3">
+    <h1>A few options</h1>
+    <p class="lead">Kaizen installs just for you, with no administrator rights needed.</p>
+    <label class="h">Install folder</label>
+    <div class="row"><input class="input" id="dir"><button class="btn" id="browse">Browse…</button></div><small id="dir-note" class="muted"></small>
+    <div class="card" style="margin-top:18px;padding:4px 20px">
+      <label class="opt"><input type="checkbox" id="optDesk" checked> Add a shortcut to the Desktop</label>
+      <label class="opt"><input type="checkbox" id="optMenu" checked> Add Kaizen to the Start menu</label>
+      <label class="opt"><input type="checkbox" id="optLaunch" checked> Open Kaizen when setup finishes</label>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" id="installBtn">Install</button></div>
+  </section>
+
+  <!-- 4 install -->
+  <section class="page" data-p="4">
+    <div id="progHead"><h1>Installing…</h1><p class="lead">Every step happens on this PC. Downloads come straight from the publishers.</p></div>
+    <div class="prog" id="prog"></div>
+    <div id="doneBox"></div>
+    <div class="foot" id="instFoot"><button class="btn ghost" id="cancelBtn">Cancel</button></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const TOKEN = "{{TOKEN}}";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function api(path, body) {
+  const opt = { headers: { 'X-Setup': TOKEN } };
+  if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  return r.json();
+}
+setInterval(() => api('/api/ping', {}).catch(() => {}), 3000);
+api('/api/ping', {});
+
+let page = 0, info = null, engine = null;
+const ICONS = {
+  flm: '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/><path d="M10 10h4v4h-4z"/></svg>',
+  lmstudio: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M8 21h8M12 17v4M7 9h6M7 12h10"/></svg>',
+  none: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg>',
+};
+
+function show(n) {
+  const prev = page;
+  page = n;
+  $$('.page').forEach(p => {
+    const i = +p.dataset.p;
+    p.classList.toggle('on', i === n);
+    p.classList.toggle('left', i < n);
+  });
+  $$('#steps li').forEach((li, i) => { li.classList.toggle('on', i === n); li.classList.toggle('done', i < n); });
+  if (n === 1 && prev === 0) runChecks();
+  if (n === 3) drawSummary();
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-next]')) show(page + 1);
+  if (e.target.closest('[data-back]')) show(page - 1);
+  const u = e.target.closest('[data-url]');
+  if (u) api('/api/open', { url: u.dataset.url });
+});
+const edge = p => p.classList.toggle('scrolled', p.scrollHeight - p.scrollTop - p.clientHeight > 2);
+$$('.page').forEach(p => p.addEventListener('scroll', () => edge(p), { passive: true }));
+addEventListener('resize', () => $$('.page').forEach(edge));
+new MutationObserver(() => $$('.page').forEach(edge)).observe($('main'), { childList: true, subtree: true });
+$('#licBtn').onclick = () => {
+  const open = $('#lic').classList.toggle('on');
+  $('#licBtn').textContent = open ? 'Hide the licence' : 'Read the licence';
+  setTimeout(() => { if (open) $('#lic').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); $$('.page').forEach(edge); }, 520);
+};
+
+/* splash */
+const splash = $('#splash');
+const endSplash = () => splash.classList.add('out');
+splash.onclick = endSplash;
+setTimeout(endSplash, matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 2300);
+
+/* system check */
+const SYM = { ok: '✓', warn: '!', bad: '✕', info: 'i' };
+async function runChecks() {
+  const box = $('#checks');
+  box.innerHTML = '';
+  $('#verdict').className = 'verdict card';
+  if (!info) info = await api('/api/info');
+  for (const c of info.checks) {
+    box.insertAdjacentHTML('beforeend', `<div class="check"><span class="st ${c.status}">${SYM[c.status]}</span><b>${esc(c.label)}</b>
+      <span class="v">${esc(c.value)}${c.note ? `<span class="n">${esc(c.note)}</span>` : ''}</span></div>`);
+    const el = box.lastElementChild;
+    await sleep(30);
+    el.classList.add('in');
+    await sleep(140);
+  }
+  const rec = info.recommend;
+  const v = $('#verdict');
+  v.innerHTML = !info.can_install
+    ? `<span class="big" style="background:var(--sort)">✕</span><div><b>Kaizen can’t run on this PC.</b><br><span style="color:var(--ink-2)">It needs 64-bit Windows 10 (1809) or newer.</span></div>`
+    : `<span class="big" style="background:var(--sustain)">✓</span><div><b>Your PC is ready for Kaizen.</b><br><span style="color:var(--ink-2)">${
+      rec === 'flm' ? 'Best AI engine: <b>FastFlowLM on your Ryzen AI NPU</b>. It’s fast and easy on the battery.'
+      : rec === 'lmstudio' ? 'Best AI engine: <b>LM Studio</b>. This PC has no supported AMD NPU, so the AI runs on its CPU/GPU.'
+      : 'This PC is a little light for local AI. Kaizen will work without it.'}${
+      info.edition?.hardware_note && /intel/i.test(info.cpu) ? `<br><span style="font-size:12.5px;color:var(--muted)">${esc(info.edition.hardware_note)}</span>` : ''}</span></div>`;
+  v.classList.add('in');
+  $('#sysNext').disabled = !info.can_install;
+  drawEngines();
+}
+
+/* engines */
+function drawEngines() {
+  const e = info.engines;
+  engine = engine || info.recommend;
+  const gb = n => n >= 1 ? `${n.toFixed(1)} GB` : `${Math.round(n * 1000)} MB`;
+  const cards = [
+    { k: 'flm', c: 'var(--sort)', t: 'FastFlowLM · NPU', d: 'Runs the AI on the AMD Ryzen AI NPU. Fastest, and it leaves the CPU and graphics free.',
+      ok: e.flm.available, why: e.flm.reason,
+      meta: e.flm.installed ? (e.flm.model_ready ? `Installed (v${esc(e.flm.version)}) with Qwen3 4B, nothing to download` : `Installed (v${esc(e.flm.version)}) · model download ${gb(e.flm.download_gb)}`) : `Download ${gb(e.flm.download_gb)} (engine v${esc(e.flm.pinned || '')}, checked against its fingerprint, + model)` },
+    { k: 'lmstudio', c: 'var(--shine)', t: 'LM Studio', d: 'Works on any Windows PC: Intel, AMD, NVIDIA or Snapdragon. Runs on the CPU and graphics card.',
+      ok: e.lmstudio.available, why: e.lmstudio.reason,
+      meta: e.lmstudio.installed ? `Already installed · model ${gb(2.5)}` : `Download ${gb(e.lmstudio.download_gb)} (app + model)` },
+    { k: 'none', c: 'var(--muted)', t: 'No AI for now', d: 'Scans, 5S scores, the map and all clean-up actions work without AI. You can add an engine later.',
+      ok: true, meta: 'Nothing to download' },
+  ];
+  $('#engines').innerHTML = cards.map(c => `<button class="engine ${engine === c.k ? 'sel' : ''}" data-e="${c.k}" style="--c:${c.c}" ${c.ok ? '' : 'disabled'}>
+    ${info.recommend === c.k ? '<span class="badge">Recommended</span>' : ''}
+    <span class="ic">${ICONS[c.k]}</span><h3>${c.t}</h3><p>${c.d}</p>
+    <div class="meta">${c.ok ? c.meta : '✕ ' + esc(c.why)}</div></button>`).join('');
+  $$('#engines .engine').forEach(b => b.onclick = () => { engine = b.dataset.e; drawEngines(); });
+  $('#drvWarn').classList.toggle('on', engine === 'flm' && !e.flm.driver_ok);
+}
+
+/* options */
+$('#browse').onclick = async () => { const r = await api('/api/browse', { dir: $('#dir').value }); if (r.dir) $('#dir').value = r.dir; dirNote(); };
+// Kaizen always gets a folder of its own, so uninstalling can't take anything else with it
+function dirNote() {
+  const v = $('#dir').value.trim().replace(/[\\/]+$/, ''), app = info.app_folder || 'Kaizen 5S';
+  const final = v.split(/[\\/]/).pop().toLowerCase() === app.toLowerCase() ? v : `${v}\\${app}`;
+  $('#dir-note').textContent = v ? `Kaizen goes into its own folder: ${final}` : '';
+}
+$('#dir').addEventListener('input', dirNote);
+function drawSummary() {
+  if (!$('#dir').value) $('#dir').value = info.default_dir;
+  dirNote();
+  const e = info.engines;
+  const dl = engine === 'flm' ? e.flm.download_gb : engine === 'lmstudio' ? e.lmstudio.download_gb : 0;
+  $('#summary').innerHTML = `<div><b>~60 MB</b><span>Kaizen itself</span></div>
+    <div><b>${dl ? dl.toFixed(1) + ' GB' : 'None'}</b><span>to download for the AI</span></div>
+    <div><b>${{ flm: 'NPU', lmstudio: 'LM Studio', none: 'Off' }[engine]}</b><span>AI engine</span></div>`;
+  $('#installBtn').textContent = info.existing ? 'Update Kaizen' : 'Install';
+}
+
+/* install */
+$('#installBtn').onclick = async () => {
+  show(4);
+  await api('/api/install', { dir: $('#dir').value, engine, desktop: $('#optDesk').checked, startmenu: $('#optMenu').checked });
+  poll();
+};
+$('#cancelBtn').onclick = () => api('/api/cancel', {});
+async function poll() {
+  const p = await api('/api/progress');
+  $('#prog').innerHTML = p.steps.map(s => `<div class="pstep ${s.state}"><div class="t"><span class="s">${
+    s.state === 'done' ? '✓' : s.state === 'failed' ? '✕' : s.state === 'skipped' ? '!' : ''}</span>${esc(s.label)}</div>
+    ${s.detail ? `<div class="d">${esc(s.detail)}</div>` : ''}
+    ${s.state === 'active' ? `<div class="bar ${s.pct == null ? 'indet' : ''}"><i style="width:${s.pct || 0}%"></i></div>` : ''}</div>`).join('')
+    + (p.wait ? `<div class="pstep waitcard"><div class="t">${esc(p.wait.text)}</div><div style="margin:12px 0 0 0;display:flex;gap:8px">${
+      p.wait.actions.map((a, i) => `<button class="btn ${i ? '' : 'primary'}" data-answer="${esc(a)}">${esc(a)}</button>`).join('')}</div></div>` : '');
+  $$('[data-answer]').forEach(b => b.onclick = () => api('/api/answer', { value: b.dataset.answer }));
+  if (p.running || (!p.done && !p.error)) return setTimeout(poll, 500);
+  $('#instFoot').innerHTML = '';
+  if (p.error) {
+    $('#progHead').innerHTML = `<h1>Setup stopped</h1><p class="lead err">${esc(p.error)}</p>`;
+    $('#instFoot').innerHTML = `<button class="btn" onclick="window.close()">Close</button><button class="btn primary" onclick="location.reload()">Start over</button>`;
+    return;
+  }
+  $('#steps li:last-child').classList.add('done');
+  $('#progHead').innerHTML = '';
+  $('#doneBox').innerHTML = `<div class="donebox"><div class="mark">整</div><h1 style="margin-top:14px">Kaizen 5S is ready</h1>
+    <p class="lead" style="margin:0 auto 6px">${info.test ? 'Test mode: nothing outside the test folder was changed.' : 'Open it from the Desktop or Start menu. You can remove it any time in Settings → Apps.'}</p>
+    <p style="color:var(--muted);font-size:12px">© 2026 Alexander Gubric · Free and open source (MIT License)</p></div>`;
+  $('#instFoot').innerHTML = `<button class="btn" onclick="window.close()">Close</button><button class="btn primary" id="openBtn">Open Kaizen</button>`;
+  $('#openBtn').onclick = async () => { await api('/api/launch', {}); setTimeout(() => window.close(), 400); };
+  if ($('#optLaunch').checked && !info.test) { await api('/api/launch', {}); }
+}
+
+/* boot */
+(async () => {
+  info = await api('/api/info');
+  $('#licText').textContent = info.license;
+  const ed = info.edition || {};
+  $('#ver').textContent = `Setup · version ${info.version}${ed.name ? ' · ' + ed.name : ''}${info.test ? ' · TEST MODE' : ''}`;
+  if (ed.name) {
+    document.title = `Kaizen 5S Setup · ${ed.name}`;
+    $('#legal').innerHTML = `© 2026 Alexander Gubric<br>${esc(ed.name)}<br>${esc(ed.grant)}<br>MIT License`;
+    $('#licLead').innerHTML = `This is the <b>${esc(ed.name)}</b>. ${esc(ed.grant)} Kaizen 5S is free and open source software
+      under the MIT License.${ed.allow_uninstall === false ? ` <br><br>${esc(ed.uninstall_note)} Kaizen still shows which programs
+      haven’t been used, so you can tell IT.` : ''}`;
+  }
+  show(0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morph</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+<script>window.MORPH_TOKEN = "__TOKEN__";</script>
+</head>
+<body>
+<div class="aurora"><i></i><i></i><i></i></div>
+
+<header id="hdr">
+  <div class="brand"><div class="blob"></div>Morph</div>
+  <div class="spacer"></div>
+  <div class="pill" id="aiPill" title="Format advisor running on the Ryzen AI NPU"><span class="dot" id="aiDot"></span><span id="aiText">AI off</span></div>
+  <button class="iconbtn" id="btnFolder" title="Open output folder"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+  <button class="iconbtn" id="btnFormats" title="Supported formats"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></button>
+  <button class="iconbtn" id="btnSettings" title="Settings"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
+</header>
+
+<main>
+  <section class="drop" id="drop">
+    <div class="orb"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M5 20h14"/></svg></div>
+    <div>
+      <h1 id="dropTitle">Drop anything here</h1>
+      <p id="dropText">Video, music, pictures, documents, e-books, spreadsheets, data, archives, fonts and subtitles — 100+ formats, converted right on this PC.</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="btnBrowse"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Choose files</button>
+    </div>
+    <div class="cats" id="cats"></div>
+  </section>
+  <div id="files"></div>
+</main>
+
+<div class="overlay" id="overlay"><div class="ring">Release to<br>add files</div></div>
+<div class="tip" id="tip"></div>
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="settings">
+  <div class="dh">Settings<div class="spacer"></div><button class="iconbtn" data-close><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="db">
+    <div class="sect"><h6>Output</h6>
+      <div class="row"><div class="grow"><div>Save next to the original</div><div>For files picked with “Choose files”</div></div><button class="toggle" data-set="beside"></button></div>
+      <div class="row"><div class="grow"><div>Output folder</div><div id="outDir"></div></div><button class="btn small" id="btnOutDir">Change</button></div>
+      <div class="row"><div class="grow"><div>Default quality</div></div><div id="qualSeg"></div></div>
+    </div>
+    <div class="sect"><h6>Speed</h6>
+      <div class="row"><div class="grow"><div>GPU video encoding</div><div>AMD Radeon or Intel Quick Sync — falls back to CPU automatically</div></div><button class="toggle" data-set="gpu"></button></div>
+    </div>
+    <div class="sect"><h6>AI format advisor · Ryzen AI NPU</h6>
+      <div class="enabler" id="aiCard"></div>
+      <div id="aiRows">
+        <div class="row"><div class="grow"><div>Enable advisor</div><div>Runs locally on the NPU through FastFlowLM</div></div><button class="toggle" data-set="ai"></button></div>
+        <div class="row"><div class="grow"><div>Advise automatically</div><div>As soon as a file is added</div></div><button class="toggle" data-set="auto_advise"></button></div>
+        <div class="row"><div class="grow"><div>Model</div></div><select class="field" id="model"></select></div>
+      </div>
+    </div>
+    <div class="sect"><h6>Engines</h6><div id="engines"></div></div>
+  </div>
+</aside>
+
+<section class="modal" id="formats">
+  <div class="dh" style="display:flex;align-items:center;padding:18px 18px 8px 24px;font-size:17px;font-weight:650">Supported formats<div class="spacer"></div><button class="iconbtn" data-close><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="search"><input id="fmtSearch" placeholder="Search formats… (e.g. heic, epub, parquet)"></div>
+  <div class="db" id="fmtList"></div>
+</section>
+
+<input type="file" id="fileInput" multiple hidden>
+<script src="app.js"></script>
+</body>
+</html>

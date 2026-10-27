@@ -1,0 +1,187 @@
+# Security, users, logs and repair.
+
+## Defender and firewall
+
+? antivirus status | is defender on | windows defender status | am I protected | virus protection status
+Get-MpComputerStatus | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, AntivirusSignatureLastUpdated, QuickScanEndTime
+= Shows whether Microsoft Defender and real-time protection are on, and when it last updated and scanned.
+
+? virus scan | quick scan | scan my pc for viruses | check for malware | scan for viruses
+Start-MpScan -ScanType QuickScan; Get-MpThreatDetection | Select-Object -Last 5 InitialDetectionTime, ThreatID, ActionSuccess
+= Runs a Microsoft Defender quick scan (a few minutes), then lists recent detections.
+
+? full virus scan | full scan | deep scan
+Start-MpScan -ScanType FullScan
+= Runs a full Defender scan of every file (can take an hour or more).
+
+? scan {folder} for viruses | virus scan {folder} | check {folder} for malware
+Start-MpScan -ScanType CustomScan -ScanPath "{{folder}}"; 'Scan finished.'; Get-MpThreatDetection | Select-Object -Last 5 InitialDetectionTime, ThreatID, Resources
+= Scans {folder} with Microsoft Defender.
+
+? scan {file} for viruses | is {file} safe | check {file} for malware
+Start-MpScan -ScanType CustomScan -ScanPath "{{folder}}\{{file}}"; 'Scan finished.'; Get-MpThreatDetection | Select-Object -Last 5 InitialDetectionTime, ThreatID, Resources
+= Scans {file} with Microsoft Defender.
+& folder=.
+
+? update defender | update virus definitions | update antivirus
+Update-MpSignature; Get-MpComputerStatus | Select-Object AntivirusSignatureVersion, AntivirusSignatureLastUpdated
+= Downloads the latest Defender signatures.
+
+? detected threats | virus history | what did defender find | quarantine
+Get-MpThreatDetection | Select-Object InitialDetectionTime, ThreatID, ActionSuccess, Resources
+= Lists threats Defender has detected. No output means nothing was found.
+
+? windows security | open windows security | defender settings
+Start-Process "windowsdefender:"
+= Opens Windows Security.
+
+? firewall status | is the firewall on
+Get-NetFirewallProfile | Select-Object Name, Enabled
+= Shows whether the firewall is on for Domain, Private and Public networks.
+
+? turn on the firewall | enable firewall
+Set-NetFirewallProfile -Profile Domain, Private, Public -Enabled True; Get-NetFirewallProfile | Select-Object Name, Enabled
+= Turns the firewall on for all networks.
+! admin
+
+? turn off the firewall | disable firewall
+Set-NetFirewallProfile -Profile Domain, Private, Public -Enabled False; Get-NetFirewallProfile | Select-Object Name, Enabled
+= Turns the firewall OFF for all networks. Not recommended; turn it back on soon.
+! admin
+
+? firewall rules | list firewall rules | which programs are allowed through the firewall
+Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow | Where-Object DisplayName -notmatch '^@' | Sort-Object DisplayName | Select-Object DisplayName, Profile
+= Lists the enabled inbound "allow" firewall rules.
+
+? block {app} in the firewall | stop {app} from using the internet
+$exe = (Get-Process -Name "{{app|process}}" -ErrorAction SilentlyContinue | Where-Object Path | Select-Object -First 1).Path; if (-not $exe) { $exe = (Get-Command "{{app|launch}}" -ErrorAction Stop).Source }; New-NetFirewallRule -DisplayName "Sensei - block {{app|name}}" -Direction Outbound -Program $exe -Action Block | Select-Object DisplayName, Enabled
+= Blocks {app} from the internet with an outbound firewall rule.
+! admin
+
+## Users and access
+
+? local users | user accounts | who uses this pc | list users
+Get-LocalUser | Select-Object Name, Enabled, LastLogon, Description
+= Lists the local user accounts.
+
+? am I administrator | do I have admin rights | is sensei elevated | am I admin
+([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+= True if this PowerShell runs as administrator.
+
+? administrators | who is admin on this pc | members of the administrators group
+Get-LocalGroupMember -SID 'S-1-5-32-544'
+= Lists the members of the local Administrators group.
+
+? who am I | my username | current user
+whoami
+= Prints your computer and user name.
+
+? who is logged in | signed in users | logged on users
+Get-CimInstance Win32_ComputerSystem | Select-Object UserName
+= Shows who is signed in at this PC's screen.
+
+? create a user {name} | add a new user account {name}
+New-LocalUser -Name "{{name}}" -Password (Read-Host -AsSecureString 'Password for {{name}}')
+= Creates the local account {name} and asks for its password (opens in a terminal).
+! admin
+
+? execution policy | can I run scripts | script policy
+Get-ExecutionPolicy -List
+= Shows the script execution policy at every scope.
+
+? allow running scripts | scripts are disabled | enable scripts | running scripts is disabled on this system
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Get-ExecutionPolicy -List
+= Lets you run your own scripts; downloaded scripts must be signed or unblocked.
+
+? failed login attempts | wrong password attempts | who tried to log in
+Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625} -MaxEvents 20 -ErrorAction SilentlyContinue | Select-Object TimeCreated, @{n='Account';e={$_.Properties[5].Value}}
+= Lists the last 20 failed sign-in attempts.
+! admin
+
+? last logins | when did I log in | logon history
+Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Winlogon'; Id=7001} -MaxEvents 15 -ErrorAction SilentlyContinue | Select-Object TimeCreated
+= Lists the last 15 sign-ins.
+
+? tpm | tpm status | tpm chip
+Get-Tpm | Select-Object TpmPresent, TpmReady, TpmEnabled, ManufacturerVersion
+= Shows whether a TPM is present and ready.
+! admin
+
+? secure boot | is secure boot on
+Confirm-SecureBootUEFI
+= True if Secure Boot is on.
+! admin
+
+? device encryption | is my disk encrypted | bitlocker status
+Get-CimInstance -Namespace root\cimv2\Security\MicrosoftVolumeEncryption -ClassName Win32_EncryptableVolume -ErrorAction Stop | Select-Object DriveLetter, @{n='Protected';e={$_.ProtectionStatus -eq 1}}
+= Shows which drives are encrypted with BitLocker/device encryption.
+! admin
+
+? generate a password | random password | make a strong password | password with {n} characters
+$c = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%&*-_=+?'; -join (1..{{n}} | ForEach-Object { $c[[Security.Cryptography.RandomNumberGenerator]::GetInt32($c.Length)] })
+= Generates a random {n}-character password.
+& n=20
+
+? sha256 of {text} | hash the text {text}
+[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes('{{text}}')))
+= SHA256 hash of "{text}".
+
+## Logs and troubleshooting
+
+? recent errors | system errors | event log errors | what went wrong | errors in the system log
+Get-WinEvent -FilterHashtable @{LogName='System'; Level=2} -MaxEvents 20 | Select-Object TimeCreated, ProviderName, Id, Message
+= Shows the 20 most recent errors in the System event log.
+
+? errors {days} | errors in the last {days} | system errors today
+Get-WinEvent -FilterHashtable @{LogName='System'; Level=2; StartTime=(Get-Date).AddDays(-{{days}})} -ErrorAction SilentlyContinue | Select-Object TimeCreated, ProviderName, Id, Message
+= System errors from the last {days} day(s).
+& days=1
+
+? why did my pc restart | unexpected shutdown | crash history | why did my pc turn off | shutdown history
+Get-WinEvent -FilterHashtable @{LogName='System'; Id=41,1074,6008} -MaxEvents 15 | Select-Object TimeCreated, Id, @{n='What';e={switch ($_.Id) { 41 {'Unexpected power loss/crash'} 6008 {'Unexpected shutdown'} default {($_.Message -split "`n")[0]} }}}
+= Lists shutdowns and restarts with their reason.
+
+? app crashes | which programs crashed | application errors | crashed apps
+Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000} -MaxEvents 15 -ErrorAction SilentlyContinue | Select-Object TimeCreated, @{n='App';e={$_.Properties[0].Value}}, @{n='Module';e={$_.Properties[3].Value}}
+= Lists recent application crashes.
+
+? blue screens | bsod | blue screen dumps | minidump
+Get-ChildItem C:\Windows\Minidump -ErrorAction SilentlyContinue | Select-Object Name, LastWriteTime, Length; Get-WinEvent -FilterHashtable @{LogName='System'; Id=1001; ProviderName='Microsoft-Windows-WER-SystemErrorReporting'} -MaxEvents 5 -ErrorAction SilentlyContinue | Select-Object TimeCreated, Message
+= Lists blue-screen crash dumps and their stop codes. No output means no recorded blue screens.
+
+? boot history | startup times | boot times | when did the pc start before
+Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Kernel-General'; Id=12} -MaxEvents 10 | Select-Object TimeCreated
+= Lists the last 10 times Windows started.
+
+? how long does boot take | slow startup | boot duration
+Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Diagnostics-Performance/Operational'; Id=100} -MaxEvents 5 -ErrorAction SilentlyContinue | Select-Object TimeCreated, @{n='BootSeconds';e={[math]::Round($_.Properties[5].Value/1000,1)}}
+= Shows how long the last boots took.
+! admin
+
+? reliability history | reliability monitor | stability history
+Start-Process perfmon -ArgumentList '/rel'
+= Opens Reliability Monitor, a timeline of crashes and problems.
+
+? repair windows files | sfc scan | system file check | sfc /scannow | fix corrupted files
+sfc /scannow
+= Checks and repairs protected Windows files (several minutes).
+! admin
+
+? repair windows image | dism restore health | dism repair
+DISM /Online /Cleanup-Image /RestoreHealth
+= Repairs the Windows component store from Windows Update.
+! admin
+
+? create a restore point | system restore point | make a restore point
+powershell.exe -NoProfile -Command "Checkpoint-Computer -Description 'Sensei restore point' -RestorePointType MODIFY_SETTINGS"
+= Creates a System Restore point (uses Windows PowerShell 5.1, where that cmdlet lives).
+! admin
+
+? list restore points | restore points
+Get-CimInstance -Namespace root/default -ClassName SystemRestore | Select-Object SequenceNumber, Description, @{n='Created';e={[Management.ManagementDateTimeConverter]::ToDateTime($_.CreationTime)}}
+= Lists System Restore points.
+! admin
+
+? system restore | restore my pc to an earlier point
+Start-Process rstrui.exe
+= Opens System Restore.

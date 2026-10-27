@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kaizen 5S</title>
+  <link rel="icon" href="/icon.png" type="image/png" sizes="192x192">
+  <link rel="stylesheet" href="/style.css">
+  <script>window.KAIZEN_TOKEN = "{{TOKEN}}";</script>
+</head>
+<body>
+  <nav class="rail">
+    <a class="logo" href="#/overview" title="Kaizen 5S">
+      <svg viewBox="0 0 32 32"><path d="M26.5 16.5a10.5 10.5 0 1 1-4.3-8.5" /></svg>
+    </a>
+    <div class="rail-nav">
+      <a href="#/overview" data-view="overview" title="Overview"><i data-icon="overview"></i><span>Overview</span></a>
+      <a href="#/map" data-view="map" title="Folder map"><i data-icon="map"></i><span>Map</span></a>
+      <a href="#/files" data-view="files" title="Files"><i data-icon="files"></i><span>Files</span></a>
+      <a href="#/programs" data-view="programs" title="Programs"><i data-icon="programs"></i><span>Programs</span></a>
+    </div>
+    <div class="rail-foot">
+      <button id="themeBtn" title="Switch theme"><i data-icon="moon"></i></button>
+      <button id="settingsBtn" title="Settings"><i data-icon="gear"></i></button>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="topbar">
+      <div class="title">
+        <h1 id="viewTitle">Overview</h1>
+        <p id="viewSub"></p>
+      </div>
+      <div class="top-actions">
+        <button class="ai-pill" id="aiPill" title="Local AI status"><span class="dot"></span><span class="txt">NPU</span></button>
+        <button class="btn primary" id="scanBtn"><i data-icon="scan"></i><span>Run 5S check</span></button>
+      </div>
+      <div class="scanline" id="scanline"></div>
+    </header>
+    <div id="view" class="view"></div>
+  </main>
+
+  <aside class="chat" id="chat" aria-hidden="true">
+    <header>
+      <div>
+        <h2>Ask Kaizen</h2>
+        <p id="chatMeta">Runs on your Ryzen AI NPU · offline</p>
+      </div>
+      <button class="icon-btn" id="chatClose" title="Close"><i data-icon="x"></i></button>
+    </header>
+    <div class="chat-log" id="chatLog"></div>
+    <form class="chat-input" id="chatForm">
+      <textarea id="chatText" rows="1" placeholder="Ask about your files or programs…"></textarea>
+      <button class="send" type="submit" title="Send"><i data-icon="send"></i></button>
+    </form>
+  </aside>
+  <button class="ask-fab" id="askFab"><i data-icon="chat"></i><span>Ask Kaizen</span></button>
+
+  <div class="selbar" id="selbar"></div>
+  <div class="toasts" id="toasts"></div>
+  <div class="tooltip" id="tooltip"></div>
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet"></div>
+  <div class="modal" id="modal"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

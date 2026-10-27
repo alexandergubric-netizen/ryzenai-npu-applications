@@ -1,0 +1,22 @@
+pillow>=11
+pillow-heif
+rawpy
+pymupdf
+pdf2docx
+pypandoc_binary
+python-docx
+pandas
+openpyxl
+xlrd
+odfpy
+pyarrow
+tabulate
+lxml
+pyyaml
+tomli_w
+xmltodict
+py7zr
+fonttools
+brotli
+# also needs ffmpeg/ffprobe on PATH (choco install ffmpeg) and Microsoft Edge (HTML -> PDF)
+# optional: LibreOffice (exact Office layouts, DOC/PPT/XLS), 7-Zip (RAR), FastFlowLM (AI advisor)

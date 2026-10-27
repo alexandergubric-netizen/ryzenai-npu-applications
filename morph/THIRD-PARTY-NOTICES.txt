@@ -1,0 +1,42 @@
+Morph bundles these open-source components. Their own licence files are in runtime\licenses; the full texts of
+the GNU licences are in app\licenses.
+
+LICENCE OF MORPH AS DISTRIBUTED
+  Morph's own code (app.py, core\, web\) is MIT-licensed (LICENSE). Because Morph runs PyMuPDF/MuPDF (AGPL-3.0) in
+  the same process, Morph as distributed is covered by the GNU Affero General Public License v3.0
+  (licenses\AGPL-3.0.txt). Its complete source is the .py, .js, .css and .html files in the install folder.
+  The programs in tools\ (FFmpeg, pandoc) are separate programs run by Morph, each under its own licence below.
+
+  Component                    Version     Licence                       Source of exactly this version
+  Python                       3.12.10     PSF License                   https://www.python.org/downloads/release/python-31210/
+  PyMuPDF / MuPDF              1.27.2.2    AGPL-3.0 (or Artifex          https://github.com/pymupdf/PyMuPDF/releases/tag/1.27.2.2
+                                           commercial licence)
+  FFmpeg + ffprobe             8.0.1       GPL-3.0 (gyan.dev essentials  https://ffmpeg.org/releases/ffmpeg-8.0.1.tar.xz
+    (gyan.dev build)                       build, with libx264/libx265)  build scripts: https://www.gyan.dev/ffmpeg/builds/
+  pandoc (pypandoc_binary)     3.9         GPL-2.0-or-later              https://github.com/jgm/pandoc/releases/tag/3.9
+  pillow-heif (libheif,        1.8.1       BSD-3-Clause / LGPL-3.0;      https://github.com/bigcat88/pillow_heif/releases/tag/v1.8.1
+    libde265, x265)                        the binary wheel bundles      x265: https://bitbucket.org/multicoreware/x265_git
+                                           x265, so it is GPL-2.0
+  rawpy / LibRaw               0.27.1      MIT / LGPL-2.1 or CDDL-1.0    https://github.com/letmaik/rawpy/releases/tag/v0.27.1
+  py7zr and its helpers        1.1.4       LGPL-2.1-or-later             https://github.com/miurahr/py7zr/releases/tag/v1.1.4
+  Pillow                       12.2.0      MIT-CMU                       python-pillow.org
+  pandas, NumPy, lxml                      BSD-3-Clause                  pandas.pydata.org, numpy.org, lxml.de
+  openpyxl                                 MIT                           openpyxl.readthedocs.io
+  xlrd                                     BSD                           github.com/python-excel/xlrd
+  odfpy                                    Apache-2.0 / GPL / LGPL       github.com/eea/odfpy
+  python-docx                              MIT                           github.com/python-openxml/python-docx
+  fontTools, Brotli                        MIT                           github.com/fonttools/fonttools
+  PyYAML, xmltodict, tomli-w, tabulate     MIT
+
+WRITTEN OFFER
+  For three years from the date you received Morph, Alexander Gubric will give anyone who asks a copy of the
+  complete corresponding source code of the GPL, LGPL and AGPL components above, in the exact versions bundled,
+  for no more than the cost of providing it. Ask through the issues page of
+  https://github.com/alexandergubric-netizen/ryzenai-npu-applications. The links above point to the same sources.
+
+Licence texts in licenses\: AGPL-3.0.txt, GPL-3.0.txt, GPL-2.0.txt, LGPL-3.0.txt, LGPL-2.1.txt.
+This is a technical summary, not legal advice.
+
+Not bundled (separate programs the user installs if they want them):
+  FastFlowLM (AI advisor engine for Ryzen AI NPUs)   github.com/ROCm/FastFlowLM
+  LibreOffice (exact Office layouts)                 libreoffice.org

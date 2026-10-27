@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="tatami-token" content="{{TOKEN}}">
+<meta name="tatami-version" content="{{VERSION}}">
+<meta name="theme-color" content="#f3f3f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#202020" media="(prefers-color-scheme: dark)">
+<title>Tatami</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="cmdbar">
+    <div class="brand" title="Tatami"><span class="logo" data-logo></span><span class="brand-name">Tatami</span></div>
+    <div class="cmd-group">
+      <button class="btn cmd" id="btnDrive" title="Choose a drive to scan"><i class="ic">&#xEDA2;</i><span id="driveLabel">Drives</span><i class="ic sm">&#xE70D;</i></button>
+      <button class="btn cmd" id="btnFolder" title="Scan a folder (Ctrl+O)"><i class="ic">&#xE838;</i><span>Folder</span></button>
+      <button class="btn cmd" id="btnRescan" title="Scan again (F5)"><i class="ic">&#xE72C;</i><span>Rescan</span></button>
+    </div>
+    <div class="sep"></div>
+    <div class="cmd-group nav">
+      <button class="btn icon" id="btnBack" title="Back (Alt+Left)"><i class="ic">&#xE72B;</i></button>
+      <button class="btn icon" id="btnUp" title="Up one level (Backspace)"><i class="ic">&#xE74A;</i></button>
+    </div>
+    <nav class="crumbs" id="crumbs"></nav>
+    <div class="search">
+      <i class="ic">&#xE721;</i>
+      <input id="search" type="search" placeholder="Find files — e.g. *.iso; setup*; \Downloads\" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="cmd-group">
+      <div class="seg" id="metric" title="Measure files by">
+        <button data-m="size" class="on">Size</button><button data-m="alloc">On disk</button>
+      </div>
+      <button class="btn icon" id="btnExport" title="Export to CSV"><i class="ic">&#xE896;</i></button>
+      <button class="btn icon" id="btnMore" title="More"><i class="ic">&#xE712;</i></button>
+    </div>
+  </header>
+
+  <section class="drivebar" id="drivebar">
+    <div class="db-title">
+      <div class="db-name" id="dbName">—</div>
+      <div class="db-sub" id="dbSub"></div>
+    </div>
+    <div class="db-bar-wrap">
+      <div class="db-bar" id="dbBar"></div>
+      <div class="db-legend" id="dbLegend"></div>
+    </div>
+    <div class="db-stats" id="dbStats"></div>
+  </section>
+
+  <main class="split" id="split">
+    <section class="top" id="top">
+      <div class="pane left">
+        <div class="tabs" role="tablist">
+          <button class="tab on" data-tab="tree"><i class="ic">&#xE8B7;</i>Folders</button>
+          <button class="tab" data-tab="files"><i class="ic">&#xE8A5;</i>Largest files</button>
+          <button class="tab" data-tab="insights"><i class="ic">&#xE9D9;</i>Insights</button>
+          <span class="tab-spacer"></span>
+          <span class="tab-note" id="tabNote"></span>
+        </div>
+        <div class="tabbody" data-body="tree">
+          <div class="grid" id="tree"></div>
+        </div>
+        <div class="tabbody" data-body="files" hidden>
+          <div class="filterbar" id="filterbar"></div>
+          <div class="grid" id="files"></div>
+        </div>
+        <div class="tabbody" data-body="insights" hidden>
+          <div class="insights" id="insights"></div>
+        </div>
+      </div>
+      <div class="vsplit" id="vsplit" title="Drag to resize"></div>
+      <aside class="pane right" id="side">
+        <div class="side-head">
+          <div class="side-title">File types</div>
+          <div class="side-sub" id="typesScope"></div>
+        </div>
+        <div class="types" id="types"></div>
+      </aside>
+    </section>
+    <div class="hsplit" id="hsplit" title="Drag to resize"></div>
+    <section class="tm-wrap" id="tmWrap">
+      <div class="tm-head">
+        <button class="btn icon sm" id="tmOut" title="Zoom out (treemap shows the parent folder)"><i class="ic">&#xE71F;</i></button>
+        <span class="tm-title" id="tmTitle"></span>
+        <span class="tm-hint" id="tmHint">Click to select · double-click a folder to zoom in · right-click for actions</span>
+        <span class="tm-legend" id="tmLegend"></span>
+        <div class="seg sm" id="tmColor" title="Colour the map by">
+          <button data-c="type" class="on" title="Colour by file type">Type</button><button data-c="age" title="Heat map of when files were last changed">Age</button><button data-c="growth" title="What grew since the previous scan">Growth</button>
+        </div>
+      </div>
+      <div class="tm-stage" id="tmStage">
+        <canvas id="tm"></canvas>
+        <canvas id="tmOver"></canvas>
+        <div class="tm-tip" id="tmTip" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="status" id="status">
+    <span id="stLeft">Ready</span>
+    <span class="st-spacer"></span>
+    <span id="stRight"></span>
+  </footer>
+</div>
+
+<!-- start screen: pick a drive -->
+<section class="home" id="home" hidden>
+  <div class="home-inner">
+    <div class="home-hero">
+      <span class="logo big" data-logo></span>
+      <div>
+        <h1>See what fills your disk</h1>
+        <p>Pick a drive or a folder. Tatami lays every file out like mats on a floor, so the big ones are easy to spot.</p>
+      </div>
+    </div>
+    <div class="drive-cards" id="driveCards"></div>
+    <div class="home-foot">
+      <button class="btn" id="homeFolder"><i class="ic">&#xE838;</i>Scan a folder…</button>
+      <span class="muted" id="homeAdmin"></span>
+    </div>
+  </div>
+</section>
+
+<!-- scanning screen -->
+<section class="scanning" id="scanning" hidden>
+  <div class="scan-card">
+    <svg class="scan-room" id="scanRoom" viewBox="0 0 240 160" aria-hidden="true"></svg>
+    <h2 id="scanTitle">Scanning…</h2>
+    <div class="scan-stats">
+      <div><b id="scFiles">0</b><span>files</span></div>
+      <div><b id="scDirs">0</b><span>folders</span></div>
+      <div><b id="scBytes">0 B</b><span>found</span></div>
+      <div><b id="scTime">0.0 s</b><span>elapsed</span></div>
+    </div>
+    <div class="progress"><div id="scProg"></div></div>
+    <div class="scan-path" id="scPath"></div>
+    <button class="btn" id="scCancel">Cancel</button>
+  </div>
+</section>
+
+<!-- splash -->
+<div class="splash" id="splash">
+  <svg viewBox="0 0 120 120" class="splash-room" id="splashRoom" aria-hidden="true"></svg>
+  <div class="splash-name">Tatami</div>
+</div>
+
+<div class="menu" id="menu" hidden></div>
+<div class="dialog-back" id="dialogBack" hidden><div class="dialog" id="dialog" role="dialog" aria-modal="true"></div></div>
+<div class="toasts" id="toasts"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

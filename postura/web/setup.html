@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-edition="{{EDITION}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="postura-token" content="{{TOKEN}}">
+<meta name="postura-version" content="{{VERSION}}">
+<meta name="postura-assistant" content="{{ASSISTANT}}">
+<title>Install Postura</title>
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { overflow: auto; }
+  .wiz { min-height: 100vh; display: flex; flex-direction: column; }
+  .wiz-top { position: relative; overflow: hidden; padding: 26px 36px 20px; display: flex; gap: 22px; align-items: center; }.wiz-top .stripes { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }.wiz-top > :not(.stripes) { position: relative; }
+  .art { width: 84px; height: 84px; flex: none; filter: drop-shadow(0 6px 14px rgba(0,0,0,.18)); }
+  .wiz h1 { font-size: 26px; font-weight: var(--head-weight); letter-spacing: -.02em; }
+  .wiz-main { flex: 1; padding: 18px 36px 16px; }
+  .where { margin-top: 10px; font-size: 12px; color: var(--text-2); word-break: break-all; }
+  .wiz-foot { display: flex; align-items: center; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--line); background: var(--card); position: sticky; bottom: 0; }
+  .wiz-foot .lic { flex: 1; font-size: 12px; color: var(--text-2); }
+  .wiz-foot .btn { min-width: 120px; }
+  .err { color: var(--bad); margin-top: 10px; }
+  .step[hidden] { display: none; }
+  .grow-anim .stalk { transform-origin: 50px 86px; animation: grow 1.2s var(--ease) infinite alternate; }
+  .ai-card { margin-top: 14px; padding: 14px 18px; }
+  .ai-card .head { display: flex; gap: 12px; align-items: center; }
+  .ai-card .av { width: 40px; height: 40px; flex: none; }
+  .ai-card .head .t { flex: 1; }
+  .ai-card .head small { display: block; color: var(--text-2); font-size: 12.5px; }
+  .ai-card.locked .head { opacity: .75; }
+  .req { margin-top: 10px; display: grid; grid-template-columns: 18px 130px 1fr; gap: 4px 8px; font-size: 12.5px; align-items: start; }
+  .req .i { font-weight: 800; text-align: center; }
+  .req .i.ok { color: var(--ok); } .req .i.bad { color: var(--bad); }
+  .req .v { color: var(--text); } .req .n { color: var(--text-2); }
+  .req .lbl { color: var(--text-2); }
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 650; padding: 2px 9px; border-radius: 99px; margin-left: 6px; vertical-align: 1px; }
+  .pill.ok { background: rgba(40,167,69,.14); color: #1e7e34; } .pill.no { background: var(--line); color: var(--text-2); }
+  .steps { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .st { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 16px; }
+  .st .row { gap: 10px; }
+  .st .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; flex: none; background: var(--line-2); }
+  .st.done .ic { background: var(--ok); } .st.failed .ic { background: var(--bad); }
+  .st.active .ic { background: none; border: 2.5px solid var(--line-2); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .st .d { font-size: 12px; color: var(--text-2); margin: 4px 0 0 32px; }
+  .bar { height: 5px; border-radius: 4px; background: var(--line); margin: 7px 0 0 32px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .model-row { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .model-row label { font-weight: 600; font-size: 13px; }
+  .model-row .small { grid-column: 2; }
+</style>
+</head>
+<body>
+<div class="wiz">
+  <div class="wiz-top" id="top">
+    <div class="art" id="art"></div>
+    <div>
+      <h1 id="title">Install Postura <span id="ver" class="muted" style="font-weight:400;font-size:17px"></span></h1>
+      <p class="muted" id="sub">Sit well. Rest your eyes. Keep moving.</p>
+    </div>
+  </div>
+  <div class="wiz-main">
+    <section class="step" id="s1">
+      <div class="list">
+        <div class="item"><div class="t"><b>Start with Windows</b><small>Recommended — reminders need Postura running in the notification area (a few MB of memory)</small></div>
+          <label class="toggle"><input type="checkbox" id="oAuto" checked><span class="sw"></span></label></div>
+        <div class="item"><div class="t"><b>Start menu shortcut</b></div>
+          <label class="toggle"><input type="checkbox" id="oStart" checked><span class="sw"></span></label></div>
+        <div class="item"><div class="t"><b>Desktop shortcut</b></div>
+          <label class="toggle"><input type="checkbox" id="oDesk" checked><span class="sw"></span></label></div>
+      </div>
+
+      <div class="card ai-card" id="aiCard">
+        <div class="head">
+          <div class="av" id="aiAv"></div>
+          <div class="t"><b id="aiTitle">AI assistant</b><small id="aiSub">Checking this PC…</small></div>
+          <label class="toggle"><input type="checkbox" id="oAi" disabled><span class="sw"></span></label>
+        </div>
+        <div class="req" id="aiReq"></div>
+        <div class="model-row" id="modelRow" hidden>
+          <label for="oModel">AI model</label>
+          <select id="oModel"></select>
+          <span class="small muted" id="modelHint"></span>
+        </div>
+        <p class="small muted mt-s" id="aiNote"></p>
+      </div>
+      <div class="where" id="where"></div>
+      <div class="err" id="err" hidden></div>
+    </section>
+    <section class="step" id="s2" hidden>
+      <h2 style="font-size:20px" id="s2t">Installing…</h2>
+      <div class="steps" id="steps"></div>
+    </section>
+    <section class="step" id="s3" hidden>
+      <h2 style="font-size:20px"><span style="color:var(--ok)">✓</span> Postura is installed</h2>
+      <p class="muted mt-s" id="doneText"></p>
+      <div class="callout mt" id="aiDone" hidden></div>
+      <div class="callout mt"><div><b>Where to find it:</b> <span class="muted">the bamboo icon in the notification area, next to the clock. Click it to open Postura; right-click for “Rest my eyes now” and “Pause reminders”.</span></div></div>
+    </section>
+  </div>
+  <div class="wiz-foot">
+    <span class="lic" id="lic">© 2026 Alexander Gubric · Open source (MIT License)</span>
+    <button class="btn" id="bCancel">Cancel</button>
+    <button class="btn primary" id="bGo">Install</button>
+  </div>
+</div>
+<script type="module">
+  import { get, post } from './api.js';
+  import { logoSVG, stripesSVG, avatarSVG, EDITION, ASSISTANT } from './logo.js';
+  import { SETUP_SUB, SETUP_LIC } from './org.js';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  $('art').innerHTML = logoSVG(true);
+  $('aiAv').innerHTML = avatarSVG();
+  $('top').insertAdjacentHTML('afterbegin', stripesSVG());
+  if (SETUP_SUB) {
+    $('sub').textContent = SETUP_SUB;
+    $('lic').textContent = SETUP_LIC;
+  }
+
+  const info = await get('setup-info');
+  const ai = info.ai;
+  $('ver').textContent = info.version;
+  $('where').textContent = 'Installs for you only (no administrator rights) to ' + info.dir +
+    (info.installed ? ` · replaces ${info.installedName || 'Postura'} ${info.installed}` : '');
+  if (info.installed) $('bGo').textContent = info.installed === info.version ? 'Reinstall' : 'Update';
+  if (info.test) $('where').textContent += ' (test mode: downloads are simulated, no shortcuts or registry changes)';
+
+  // ---- AI assistant: poka-yoke — the switch unlocks only when every requirement passes
+  $('aiTitle').innerHTML = `AI assistant — Ask ${esc(ASSISTANT)} ` + (ai.supported ? '<span class="pill ok">Supported</span>' : '<span class="pill no">Not available</span>');
+  $('aiReq').innerHTML = ai.rows.map(r => `<span class="i ${r.ok ? 'ok' : 'bad'}">${r.ok ? '✓' : '✗'}</span><span class="lbl">${esc(r.label)}</span>
+    <span><span class="v">${esc(r.value)}</span>${r.note ? ` <span class="n">— ${esc(r.note)}</span>` : ''}</span>`).join('');
+  const oAi = $('oAi');
+  // model picker: the chat models this engine already has (poka-yoke: the server re-checks the choice)
+  const DL = '__download';
+  const recLabel = ai.engine === 'flm' ? 'Qwen3 4B Instruct' : 'Qwen 2.5 1.5B';
+  const sub = () => {
+    const download = !ai.models.length || $('oModel').value === DL;
+    $('aiSub').textContent = `${ai.engineName}. ` + (!download ? 'Uses a model already on this PC — nothing to download.'
+      : `Downloads about ${(ai.installed ? 0 : (ai.engine === 'flm' ? 0.05 : 0.6)) + ai.recommendedGb} GB once (needs internet${ai.engine === 'flm' && !ai.installed ? '; Windows will ask for permission' : ''}).`);
+    $('modelHint').textContent = download ? `Recommended for Postura: ${recLabel}.`
+      : $('oModel').value === ai.model ? 'Recommended — tested with Postura.'
+      : 'Any installed chat model works. Larger models answer better; smaller ones answer faster.';
+  };
+  if (ai.supported && ai.models.length) {
+    $('modelRow').hidden = false;
+    $('oModel').innerHTML = ai.models.map(m => `<option value="${esc(m)}">${esc(m)}${m === ai.model ? ' (recommended)' : ''}</option>`).join('') +
+      (ai.modelReady ? '' : `<option value="${DL}">Download ${recLabel} (recommended, about ${ai.recommendedGb} GB)</option>`);
+    $('oModel').value = ai.modelReady ? ai.model : ai.models[0];
+    $('oModel').onchange = sub;
+    oAi.addEventListener('change', () => { $('oModel').disabled = !oAi.checked; });
+  }
+  if (ai.supported) {
+    oAi.disabled = false;
+    oAi.checked = ai.installed && ai.models.length > 0;
+    $('oModel').disabled = !oAi.checked;
+    sub();
+    $('aiNote').textContent = ai.engine === 'foundry'
+      ? 'Intel NPUs in many laptops (for example Core Ultra 5 225U) are modest, so a small 1.5B model is used — quick and good enough for short ergonomics answers. By installing it you accept the Microsoft Foundry Local license terms.'
+      : 'After setup, the assistant runs on the NPU only while you use it. You can switch it off later in Postura → Settings.';
+  } else {
+    $('aiCard').classList.add('locked');
+    $('aiSub').textContent = 'This PC doesn’t meet the requirements, so Postura installs without the assistant. Everything else works the same.';
+    $('aiNote').textContent = 'The assistant needs an AMD Ryzen AI 300/400/Max processor (FastFlowLM on the NPU) or an Intel Core Ultra processor with an NPU (Microsoft Foundry Local).';
+  }
+
+  // ---- install + progress
+  let done = false;
+  $('bCancel').onclick = () => window.close();
+  const renderSteps = p => {
+    $('steps').innerHTML = p.steps.map(s => `
+      <div class="st ${s.state}"><div class="row"><span class="ic">${s.state === 'done' ? '✓' : s.state === 'failed' ? '!' : ''}</span><b style="flex:1">${esc(s.label)}</b>${s.pct >= 0 && s.state === 'active' ? `<span class="small muted">${s.pct}%</span>` : ''}</div>
+        ${s.detail ? `<div class="d">${esc(s.detail)}</div>` : ''}
+        ${s.state === 'active' && s.pct >= 0 ? `<div class="bar"><i style="width:${s.pct}%"></i></div>` : ''}</div>`).join('');
+  };
+  $('bGo').onclick = async () => {
+    if (done) { await post('setup-launch').catch(() => {}); window.close(); return; }
+    $('err').hidden = true;
+    $('s1').hidden = true; $('s2').hidden = false;
+    $('art').classList.add('grow-anim');
+    $('bGo').disabled = true; $('bCancel').disabled = true;
+    const withAi = oAi.checked && !oAi.disabled;
+    $('s2t').textContent = withAi ? 'Installing Postura and the AI assistant…' : 'Installing…';
+    try {
+      const model = !ai.models.length || $('oModel').value === DL ? ai.model : $('oModel').value;
+      await post('setup-install', { startMenu: $('oStart').checked, desktop: $('oDesk').checked, autostart: $('oAuto').checked, ai: withAi, model });
+      let p;
+      do { await new Promise(r => setTimeout(r, 500)); p = await get('setup-progress'); renderSteps(p); } while (p.running);
+      if (p.error) throw new Error(p.error);
+      $('art').classList.remove('grow-anim');
+      const where = [$('oStart').checked && 'in Start', $('oDesk').checked && 'on your desktop'].filter(Boolean).join(' and ');
+      $('doneText').textContent = (where ? `You'll find Postura ${where}. ` : '') +
+        ($('oAuto').checked ? 'It starts with Windows, so your eye-break reminders keep working.' : 'Open it whenever you want reminders running.') +
+        ' Uninstall any time from Settings → Apps.';
+      if (withAi) {
+        $('aiDone').hidden = false;
+        $('aiDone').innerHTML = p.aiError
+          ? `<div><b>The AI assistant couldn’t be set up.</b> <span class="muted">${esc(p.aiError)} Postura works fully without it — run this installer again later to retry.</span></div>`
+          : `<div><b>${esc(ASSISTANT)} is ready.</b> <span class="muted">Open Postura and choose “Ask ${esc(ASSISTANT)}” in the sidebar. The first answer takes a few seconds while the model loads.</span></div>`;
+      }
+      $('s2').hidden = true; $('s3').hidden = false;
+      $('bGo').textContent = 'Open Postura'; $('bCancel').textContent = 'Close';
+      done = true;
+    } catch (e) {
+      $('s2').hidden = true; $('s1').hidden = false;
+      $('err').textContent = 'Install failed: ' + e.message; $('err').hidden = false;
+    }
+    $('bGo').disabled = false; $('bCancel').disabled = false;
+  };
+  setInterval(() => get('ping').catch(() => {}), 2000);
+</script>
+</body>
+</html>

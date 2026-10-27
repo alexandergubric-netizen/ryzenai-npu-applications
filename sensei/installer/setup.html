@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensei Setup</title>
+<link rel="icon" href="/logo.png">
+<style>
+:root {
+  --bg: #f5efe4; --surface: #fffaf2; --ink: #1c1d2a; --ink-2: #4e4b58; --muted: #8b8692; --line: #e4d9c6;
+  --shu: #e25a3c; --ai: #3d5ad6; --matcha: #3f9a52; --kogane: #c98b17; --fuji: #8659d6; --sora: #1f8fb3;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { font: 14px/1.5 var(--font); color: var(--ink); background: var(--bg); display: grid; grid-template-columns: 290px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; }
+.splash { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: radial-gradient(700px 420px at 50% 45%, #fbf6ea, #e9dfca); transition: opacity .6s var(--ease), visibility .6s; cursor: pointer; }
+.splash.out { opacity: 0; visibility: hidden; }
+.splash svg { width: 120px; height: 120px; transform: scale(1.6) rotate(-9deg); opacity: 0; animation: stamp .55s cubic-bezier(.2, 1.6, .4, 1) .1s forwards; filter: drop-shadow(0 14px 24px rgba(201, 68, 42, .3)); }
+.splash .chev { stroke-dasharray: 520; stroke-dashoffset: 520; animation: draw .45s ease .6s forwards; }
+.splash .cursor { stroke-dasharray: 170; stroke-dashoffset: 170; animation: draw .3s ease 1s forwards; }
+.splash b { display: block; text-align: center; margin-top: 18px; font: 600 30px var(--display); letter-spacing: 8px; padding-left: 8px; opacity: 0; animation: up .6s var(--ease) .7s forwards; }
+@keyframes stamp { 60% { opacity: 1; transform: scale(.94) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) rotate(-3deg); } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+aside { background: linear-gradient(170deg, #22243a, #12131d); color: #f5efe4; padding: 32px 26px 22px; display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 13px; }
+.brand img { width: 50px; height: 50px; transform: rotate(-3deg); }
+.brand b { font: 600 21px var(--display); display: block; letter-spacing: .5px; }
+.brand span { font-size: 12px; opacity: .6; }
+.steps { list-style: none; padding: 0; margin: 44px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.steps li { display: flex; align-items: center; gap: 13px; padding: 9px 11px; border-radius: 12px; opacity: .45; transition: all .35s var(--ease); }
+.steps li i { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-style: normal; font-weight: 700; background: color-mix(in srgb, var(--c) 25%, transparent); color: var(--c); transition: all .35s var(--ease); }
+.steps li.on { opacity: 1; background: rgba(255, 255, 255, .07); }
+.steps li.on i { background: var(--c); color: #fff; }
+.steps li.done { opacity: .8; }
+.legal { margin-top: auto; font-size: 11.5px; line-height: 1.6; opacity: .6; }
+.legal a { color: inherit; }
+main { position: relative; overflow: hidden; }
+.page { position: absolute; inset: 0; padding: 40px 48px 0; overflow-y: auto; opacity: 0; transform: translateX(30px); pointer-events: none; transition: opacity .45s var(--ease), transform .45s var(--ease); display: flex; flex-direction: column; }
+.page > * { flex-shrink: 0; }
+.page.on { opacity: 1; transform: none; pointer-events: auto; }
+h1 { font: 600 28px/1.15 var(--display); margin: 0 0 10px; letter-spacing: -.02em; }
+.lead { color: var(--ink-2); font-size: 15px; max-width: 560px; margin: 0 0 22px; }
+.foot { position: sticky; bottom: 0; margin: auto -48px 0; padding: 16px 48px; display: flex; justify-content: flex-end; gap: 10px; background: var(--bg); border-top: 1px solid var(--line); }
+.btn { height: 40px; padding: 0 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 500; transition: all .2s var(--ease); display: inline-flex; align-items: center; gap: 8px; color: var(--ink); }
+.btn:hover { border-color: var(--ink-2); transform: translateY(-1px); }
+.btn.primary { background: var(--ai); color: #fff; border-color: var(--ai); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.feats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+.feats div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; animation: up .5s var(--ease) both; }
+.feats div:nth-child(2) { animation-delay: .06s; } .feats div:nth-child(3) { animation-delay: .12s; } .feats div:nth-child(4) { animation-delay: .18s; }
+.feats b { display: block; margin-bottom: 2px; }
+.feats span { color: var(--muted); font-size: 12.5px; }
+.feats div::before { content: ""; display: block; width: 26px; height: 5px; border-radius: 3px; background: var(--c); margin-bottom: 9px; }
+.license { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font: 12px/1.5 Consolas, monospace; white-space: pre-wrap; max-height: 150px; overflow: auto; color: var(--ink-2); }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.check .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; flex: none; margin-top: 1px; }
+.dot.ok { background: var(--matcha); } .dot.warn { background: var(--kogane); } .dot.bad { background: var(--shu); } .dot.info { background: #8b8692; }
+.check b { display: block; font-weight: 600; }
+.check span { color: var(--ink-2); font-size: 13px; }
+.check small { display: block; color: var(--muted); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+.card.ai { border-color: color-mix(in srgb, var(--shu) 35%, var(--line)); background: linear-gradient(110deg, #fff7e9, #fff0ea); }
+label.opt { display: flex; gap: 11px; align-items: flex-start; padding: 7px 0; cursor: pointer; }
+label.opt input { width: 17px; height: 17px; accent-color: var(--ai); margin-top: 2px; }
+label.opt small { display: block; color: var(--muted); font-size: 12px; }
+.dir { display: flex; gap: 8px; margin-top: 6px; }
+.dir input { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--line); padding: 0 11px; font: 13px var(--font); background: #fff; }
+.prog { display: flex; flex-direction: column; gap: 10px; }
+.ps { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.ps b { display: flex; gap: 10px; align-items: center; }
+.ps .st { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line); flex: none; }
+.ps.active .st { border-color: var(--shu); border-top-color: transparent; animation: spin .8s linear infinite; }
+.ps.done .st { border-color: var(--matcha); background: var(--matcha); }
+.ps.failed .st { border-color: var(--shu); background: var(--shu); }
+.ps.skipped .st { border-color: var(--kogane); background: var(--kogane); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ps small { display: block; color: var(--muted); margin: 3px 0 0 30px; font-size: 12px; }
+.bar { height: 5px; border-radius: 5px; background: var(--line); overflow: hidden; margin: 8px 0 0 30px; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--kogane), var(--shu)); transition: width .4s; }
+.err { color: var(--shu); background: #fdeeea; border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+.done-art { display: grid; place-items: center; margin: 10px 0 18px; }
+.done-art img { width: 110px; animation: stampin .7s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes stampin { from { opacity: 0; transform: scale(1.6) rotate(-12deg); } to { opacity: 1; transform: rotate(-3deg); } }
+.test { position: fixed; top: 10px; right: 12px; background: var(--kogane); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><div>
+  <svg viewBox="0 0 1024 1024"><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E86A4A"/><stop offset="1" stop-color="#C9442A"/></linearGradient></defs>
+    <rect x="72" y="72" width="880" height="880" rx="196" fill="url(#sg)"/>
+    <rect x="132" y="132" width="760" height="760" rx="150" fill="none" stroke="#F6EFE4" stroke-width="22" opacity=".9"/>
+    <path d="M 726 330 A 260 260 0 1 0 760 548" fill="none" stroke="#F6EFE4" stroke-width="46" stroke-linecap="round" opacity=".35"/>
+    <path class="chev" d="M 330 372 L 488 512 L 330 652" fill="none" stroke="#F6EFE4" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="cursor" d="M 548 662 L 712 662" fill="none" stroke="#E5B045" stroke-width="86" stroke-linecap="round"/></svg>
+  <b>SENSEI</b></div></div>
+<aside>
+  <div class="brand"><img src="/logo.svg" alt=""><div><b>Sensei</b><span id="ver">PowerShell helper · setup</span></div></div>
+  <ol class="steps">
+    <li data-s="0" style="--c:#e5b045"><i>1</i><div>Welcome</div></li>
+    <li data-s="1" style="--c:#5aae66"><i>2</i><div>Your PC</div></li>
+    <li data-s="2" style="--c:#6f86ef"><i>3</i><div>Options</div></li>
+    <li data-s="3" style="--c:#e25a3c"><i>4</i><div>Install</div></li>
+  </ol>
+  <div class="legal" id="legal"></div>
+</aside>
+<main>
+  <section class="page" data-p="0">
+    <h1>Welcome to Sensei</h1>
+    <p class="lead">Describe what you want to do on your PC in plain words. Sensei finds the exact PowerShell command, checks it on this PC and runs it — offline.</p>
+    <div class="feats">
+      <div style="--c:#c98b17"><b>540 tested tasks</b><span>Files, disks, network, Wi-Fi, apps, power, sound, screenshots, images — answered instantly.</span></div>
+      <div style="--c:#1f8fb3"><b>Understands you</b><span>Folders, apps, sizes, times and typos are picked out of your sentence and filled in.</span></div>
+      <div style="--c:#3f9a52"><b>Checked and safe</b><span>Every command is checked on your PC. Deletes go to the Recycle Bin; risky ones ask twice.</span></div>
+      <div style="--c:#e25a3c"><b>Local AI</b><span>On Ryzen AI PCs the NPU handles anything new — nothing leaves your computer.</span></div>
+    </div>
+    <div class="license" id="license"></div>
+    <div class="foot"><button class="btn primary" data-next>Agree and continue</button></div>
+  </section>
+  <section class="page" data-p="1">
+    <h1>Checking your PC</h1>
+    <p class="lead">Here is what Sensei found.</p>
+    <div id="checks"><div class="check"><span>Checking…</span></div></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next id="toOpts" disabled>Continue</button></div>
+  </section>
+  <section class="page" data-p="2">
+    <h1>Options</h1>
+    <p class="lead">Sensei installs for your user account only — no administrator rights needed.</p>
+    <div class="card"><b>Install folder</b><div class="dir"><input id="dir" spellcheck="false"><button class="btn" id="browse">Browse…</button></div><small id="dir-note"></small></div>
+    <div class="card">
+      <label class="opt"><input type="checkbox" id="desk" checked><div>Desktop shortcut</div></label>
+      <label class="opt"><input type="checkbox" id="menu" checked><div>Start menu shortcut</div></label>
+    </div>
+    <div class="card ai" id="aiCard"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" id="go">Install</button></div>
+  </section>
+  <section class="page" data-p="3">
+    <h1 id="instTitle">Installing…</h1>
+    <p class="lead" id="instLead">This takes a few seconds.</p>
+    <div class="prog" id="prog"></div>
+    <div id="instErr"></div>
+    <div class="done-art" id="doneArt" style="display:none"><img src="/logo.svg" alt=""></div>
+    <div class="foot"><button class="btn ghost" id="close" style="display:none">Close</button><button class="btn primary" id="launch" style="display:none">Open Sensei</button></div>
+  </section>
+</main>
+<script>
+const TOKEN = "{{TOKEN}}";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const get = (p) => fetch(p, { headers: { "X-Setup": TOKEN } }).then((r) => r.json());
+const post = (p, b = {}) => fetch(p, { method: "POST", headers: { "X-Setup": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(b) }).then((r) => r.json());
+let page = 0, info = null;
+function show(n) {
+  page = n;
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("on", +p.dataset.p === n));
+  document.querySelectorAll(".steps li").forEach((l) => { l.classList.toggle("on", +l.dataset.s === n); l.classList.toggle("done", +l.dataset.s < n); });
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-next]")) show(page + 1);
+  if (e.target.closest("[data-back]")) show(page - 1);
+  const a = e.target.closest("a[data-url]");
+  if (a) { e.preventDefault(); post("/api/open", { url: a.dataset.url }); }
+});
+setInterval(() => post("/api/ping"), 3000);
+post("/api/ping");
+const splash = $("#splash");
+const hide = () => splash.classList.add("out");
+splash.onclick = hide;
+setTimeout(hide, 1700);
+show(0);
+
+(async function load() {
+  info = await get("/api/info");
+  if (info.test) document.body.insertAdjacentHTML("beforeend", '<div class="test">TEST MODE</div>');
+  $("#ver").textContent = `Version ${info.version} · setup`;
+  $("#license").textContent = info.license;
+  $("#legal").innerHTML = `${esc(info.copyright)}<br>Free software · <a href="#" data-url="https://opensource.org/license/mit">MIT License</a><br>Local AI by <a href="#" data-url="https://github.com/FastFlowLM/FastFlowLM">FastFlowLM</a>`;
+  const mark = { ok: "✓", warn: "!", bad: "×", info: "i" };
+  $("#checks").innerHTML = info.checks.map((c) => `<div class="check"><span class="dot ${c.status}">${mark[c.status]}</span><div><b>${esc(c.label)}</b><span>${esc(c.value)}</span>${c.note ? `<small>${esc(c.note)}</small>` : ""}</div></div>`).join("")
+    + (info.can_install ? "" : `<div class="err">Sensei can't be installed on this PC yet (see above). <a href="#" data-url="https://aka.ms/powershell">Get PowerShell 7</a></div>`);
+  $("#toOpts").disabled = !info.can_install;
+  $("#dir").value = info.default_dir;
+  dirNote();
+  const ai = info.ai;
+  $("#aiCard").innerHTML = ai.supported
+    ? `<label class="opt"><input type="checkbox" id="ai" ${ai.flm && ai.model ? "" : "checked"}><div><b>Set up local AI on your ${esc(ai.npu || "NPU")}</b>
+        <small>${ai.flm && ai.model ? `FastFlowLM and the ${esc(ai.name)} model are already installed — nothing to download.` : `${ai.flm ? "" : `Installs the free FastFlowLM engine ${esc(ai.flm_version || "")} (checked against its known fingerprint; Windows asks for permission; by installing it you accept <a href="#" data-url="${esc(ai.flm_license || "")}">its licence</a>) and `}downloads the ${esc(ai.name)} model (about ${ai.gb} GB). Without it, Sensei answers from its library only.`}</small></div></label>`
+    : `<b>Local AI</b><div style="color:var(--ink-2);font-size:13px;margin-top:3px">${esc(ai.reason)}. Sensei still answers from its library of tested commands; the AI fallback stays off on this PC.</div>`;
+  if (!info.pwsh) $("#aiCard").insertAdjacentHTML("beforebegin", `<div class="card"><b>PowerShell 7</b><div style="color:var(--ink-2);font-size:13px;margin-top:3px">Setup installs PowerShell 7 from Microsoft with winget — Sensei runs commands with it.</div></div>`);
+})();
+
+$("#browse").onclick = async () => { const r = await post("/api/browse", { dir: $("#dir").value }); if (r.dir) $("#dir").value = r.dir; dirNote(); };
+// the app always gets a folder of its own, so uninstalling can't take anything else with it
+function dirNote() {
+  const v = $("#dir").value.trim().replace(/[\\/]+$/, ""), app = info.app;
+  const final = v.split(/[\\/]/).pop().toLowerCase() === app.toLowerCase() ? v : `${v}\\${app}`;
+  $("#dir-note").textContent = v ? `${app} goes into its own folder: ${final}` : "";
+}
+$("#dir").addEventListener("input", dirNote);
+$("#go").onclick = async () => {
+  show(3);
+  await post("/api/install", { dir: $("#dir").value, desktop: $("#desk").checked, startmenu: $("#menu").checked, ai: !!($("#ai") && $("#ai").checked) });
+  poll();
+};
+async function poll() {
+  const p = await get("/api/progress");
+  $("#prog").innerHTML = p.steps.map((s) => `<div class="ps ${s.state}"><b><span class="st"></span>${esc(s.label)}</b>${s.detail ? `<small>${esc(s.detail)}</small>` : ""}${s.pct != null && s.state === "active" ? `<div class="bar"><i style="width:${s.pct}%"></i></div>` : ""}</div>`).join("");
+  if (p.running || (!p.done && !p.error)) return setTimeout(poll, 600);
+  if (p.error) {
+    $("#instTitle").textContent = "Something went wrong";
+    $("#instLead").textContent = "";
+    $("#instErr").innerHTML = `<div class="err">${esc(p.error)}</div>`;
+    $("#close").style.display = "";
+  } else {
+    $("#instTitle").textContent = "Sensei is ready";
+    $("#instLead").textContent = "Find it on your desktop and in the Start menu. Ask it anything you want to do on your PC.";
+    $("#doneArt").style.display = "";
+    $("#launch").style.display = ""; $("#close").style.display = "";
+    document.querySelectorAll(".steps li").forEach((l) => l.classList.add("done"));
+  }
+}
+$("#launch").onclick = async () => { await post("/api/launch"); setTimeout(() => window.close(), 400); };
+$("#close").onclick = () => window.close();
+</script>
+</body>
+</html>

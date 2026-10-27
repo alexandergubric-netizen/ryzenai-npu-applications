@@ -1,0 +1,37 @@
+MIT License
+
+Copyright (c) 2026 Alexander Gubric
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+Third-party software bundled with the Washi installer
+
+PyMuPDF and MuPDF 1.27.2.2 - Copyright (c) Artifex Software, Inc. - GNU Affero
+General Public License v3.0 (full text: licenses\AGPL-3.0.txt). Washi's own code is
+MIT-licensed (above), but because it runs PyMuPDF in the same process, Washi as
+distributed is covered by the AGPL-3.0. Washi is distributed with its complete
+source code (the .py, .js, .css and .html files in the install folder), as the
+AGPL requires. PyMuPDF source of this version:
+https://github.com/pymupdf/PyMuPDF/releases/tag/1.27.2.2
+
+Python - Copyright (c) Python Software Foundation - PSF License (runtime\LICENSE.txt).
+
+FastFlowLM (optional, installed separately for the local AI) is a separate
+program with its own licence.

@@ -1,0 +1,237 @@
+# System information, hardware, time, devices, printers.
+
+## This PC
+
+? how long has my pc been on | uptime | time since last restart | how long since reboot
+Get-Uptime
+= Shows how long Windows has been running since it last started.
+
+? when did my pc start | last boot time | when was the computer turned on | last restart
+Get-Uptime -Since
+= Shows when Windows last started.
+
+? windows version | which windows do I have | os version | build number | what version of windows
+Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber, OSArchitecture, InstallDate
+= Shows the Windows edition, version, build and install date.
+
+? computer specs | system information | what pc do I have | hardware summary | my pc specs | pc model
+Get-CimInstance Win32_ComputerSystem | Select-Object Manufacturer, Model, @{n='RAM_GB';e={[math]::Round($_.TotalPhysicalMemory/1GB)}}, NumberOfLogicalProcessors; Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores
+= Shows maker, model, RAM and processor.
+
+? full system information | everything about my computer | system summary
+Get-ComputerInfo | Select-Object CsName, OsName, OsVersion, OsBuildNumber, CsProcessors, @{n='RAM_GB';e={[math]::Round($_.CsTotalPhysicalMemory/1GB)}}, BiosSMBIOSBIOSVersion, OsLastBootUpTime
+= Collects a summary of OS, hardware and BIOS (takes a few seconds).
+
+? which cpu do I have | processor info | how many cores | cpu model | cpu speed
+Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed
+= Shows the processor, its cores, threads and maximum clock (MHz).
+
+? cpu usage | how busy is the processor | cpu load | processor usage
+Get-CimInstance Win32_Processor | Select-Object Name, LoadPercentage
+= Shows the current CPU load in percent.
+
+? graphics card | gpu | which gpu do I have | video card | graphics driver version
+Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion, DriverDate, VideoModeDescription
+= Shows your graphics adapters with driver version.
+
+? ram usage | how much memory is free | memory usage | how much ram is used | free ram
+Get-CimInstance Win32_OperatingSystem | Select-Object @{n='TotalGB';e={[math]::Round($_.TotalVisibleMemorySize/1MB,1)}}, @{n='FreeGB';e={[math]::Round($_.FreePhysicalMemory/1MB,1)}}, @{n='UsedPercent';e={[math]::Round(100 - $_.FreePhysicalMemory*100/$_.TotalVisibleMemorySize)}}
+= Shows total, free and used memory.
+
+? how much ram do I have | total memory | installed ram
+"{0:N0} GB" -f ((Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB)
+= Shows the installed memory.
+
+? ram modules | memory sticks | ram speed | ram slots
+Get-CimInstance Win32_PhysicalMemory | Select-Object BankLabel, Manufacturer, PartNumber, ConfiguredClockSpeed, @{n='GB';e={$_.Capacity/1GB}}
+= Lists each installed RAM module with size and speed.
+
+? bios version | serial number | service tag | bios info
+Get-CimInstance Win32_BIOS | Select-Object Manufacturer, SMBIOSBIOSVersion, SerialNumber, ReleaseDate
+= Shows the BIOS/UEFI version and the serial number.
+
+? motherboard | mainboard model | which motherboard
+Get-CimInstance Win32_BaseBoard | Select-Object Manufacturer, Product, Version
+= Shows the motherboard maker and model.
+
+? npu | is the npu working | ryzen ai npu | neural processor | ai accelerator
+Get-PnpDevice -PresentOnly | Where-Object FriendlyName -match 'NPU|Neural|IPU' | Select-Object FriendlyName, Status, Class
+= Finds the NPU and shows whether Windows reports it working.
+
+? computer name | pc name | hostname | name of this computer
+$env:COMPUTERNAME
+= Prints the name of this computer.
+
+? rename the computer to {name} | change the pc name to {name} | rename my pc to {name}
+Rename-Computer -NewName "{{name}}"; 'Renamed - it takes effect after a restart.'
+= Renames the PC to {name} (after a restart).
+! admin
+
+? windows product key | license key | product key
+(Get-CimInstance SoftwareLicensingService).OA3xOriginalProductKey
+= Shows the Windows key stored in the firmware (empty if there is none).
+
+? is windows activated | activation status | windows license
+Get-CimInstance SoftwareLicensingProduct -Filter "Name like 'Windows%'" | Where-Object PartialProductKey | Select-Object Name, @{n='Activated';e={$_.LicenseStatus -eq 1}}
+= Activated True means Windows is licensed.
+
+? installed updates | update history | windows updates installed | hotfixes
+Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 15 HotFixID, Description, InstalledOn
+= Lists the 15 most recently installed Windows updates.
+
+? pause windows updates | pause updates for a week | stop windows updates for now
+Start-Process "ms-settings:windowsupdate"
+= Opens Windows Update: click "Pause updates" there (1 to 5 weeks). Windows has no supported command for it.
+
+? update windows | check for windows updates | windows update | install windows updates | open windows update
+Start-Process "ms-settings:windowsupdate-action"
+= Opens Windows Update and starts checking for updates.
+
+? temperature | cpu temperature | how hot is my pc | is my pc overheating
+Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature | Select-Object InstanceName, @{n='Celsius';e={[math]::Round($_.CurrentTemperature/10 - 273.15, 1)}}
+= Reads the ACPI thermal zones (laptops often report only one approximate value).
+! admin
+
+## Battery
+
+? battery level | battery percentage | how much battery is left | battery status | is it charging | how much battery do I have | how much battery
+Get-CimInstance Win32_Battery | Select-Object @{n='Percent';e={$_.EstimatedChargeRemaining}}, @{n='Charging';e={$_.BatteryStatus -in 2,6,7,8,9}}, @{n='MinutesLeft';e={if ($_.EstimatedRunTime -lt 71582788) { $_.EstimatedRunTime }}}
+= Shows battery percent, whether it is plugged in and the estimated minutes left.
+
+? battery health | battery wear | battery capacity | battery report
+powercfg /batteryreport /output "$([Environment]::GetFolderPath('Desktop'))\battery-report.html"; Invoke-Item "$([Environment]::GetFolderPath('Desktop'))\battery-report.html"
+= Creates a battery report on your Desktop and opens it (compare design vs full charge capacity).
+
+? energy report | why does my battery drain | power efficiency report
+powercfg /energy /output "$([Environment]::GetFolderPath('Desktop'))\energy-report.html" /duration 30
+= Watches the PC for 30 seconds and writes an energy problems report to your Desktop.
+! admin
+
+? sleep study | what woke my pc | why did my pc wake up
+powercfg /lastwake
+= Shows what woke the PC the last time.
+
+? what prevents sleep | why does my pc not sleep | sleep blockers
+powercfg /requests
+= Lists programs and drivers that keep the PC awake.
+! admin
+
+## Date and time
+
+? what time is it | current time | date and time | today's date | what day is it
+Get-Date -Format 'dddd, d MMMM yyyy  HH:mm:ss'
+= Shows the date and time.
+
+? week number | which week is it | calendar week
+Get-Date -UFormat 'Week %V of %G'
+= Shows the ISO week number.
+
+? days until {date} | how many days to {date} | countdown to {date}
+(New-TimeSpan -Start (Get-Date).Date -End (Get-Date '{{date}}')).Days
+= Days from today until {date}.
+
+? what day of the week is {date} | which day is {date}
+(Get-Date '{{date}}').DayOfWeek
+= Shows the weekday of {date}.
+
+? date in {days} | what date is it in {days} | add {days} to today
+(Get-Date).AddDays({{days}}).ToString('dddd, d MMMM yyyy')
+= The date {days} days from today.
+
+? time zone | which time zone am I in
+Get-TimeZone
+= Shows the current time zone.
+
+? change the time zone to {tz} | set time zone {tz} | time zone {tz}
+Set-TimeZone -Id '{{tz}}'; Get-TimeZone
+= Sets the time zone to {tz}.
+! admin
+
+? available time zones | time zone ids | which time zones exist
+Get-TimeZone -ListAvailable | Select-Object Id, DisplayName
+= Lists every time zone id Windows knows.
+
+? sync the clock | fix the time | time is wrong | synchronize time
+w32tm /resync
+= Synchronises the clock with the internet time server.
+! admin
+
+? language and region | keyboard languages | regional format | culture
+Get-Culture | Select-Object Name, DisplayName; Get-WinUserLanguageList | Select-Object LanguageTag, InputMethodTips
+= Shows the regional format and installed keyboard languages.
+
+## Devices
+
+? drivers | list drivers | driver versions | installed drivers
+Get-CimInstance Win32_PnPSignedDriver | Where-Object DeviceName | Sort-Object DeviceName | Select-Object DeviceName, DriverVersion, @{n='Date';e={$_.DriverDate.ToString('yyyy-MM-dd')}}, Manufacturer
+= Lists device drivers with version and date.
+
+? devices with problems | device errors | broken drivers | missing drivers | yellow exclamation devices
+Get-PnpDevice -PresentOnly -Status ERROR, DEGRADED, UNKNOWN -ErrorAction SilentlyContinue | Select-Object FriendlyName, Class, Status
+= Lists devices that report a problem. No output means everything is fine.
+
+? usb devices | what is connected by usb | connected usb
+Get-PnpDevice -PresentOnly -Class USB | Select-Object FriendlyName, Status
+= Lists connected USB devices.
+
+? bluetooth devices | paired bluetooth | bluetooth list | is bluetooth on | bluetooth status
+Get-PnpDevice -Class Bluetooth | Where-Object FriendlyName -notmatch 'Enumerator|RFCOMM|Microsoft Bluetooth' | Select-Object FriendlyName, Status
+= Lists the Bluetooth adapter and paired devices.
+
+? bluetooth settings | turn on bluetooth | turn off bluetooth | pair a bluetooth device | connect bluetooth
+Start-Process "ms-settings:bluetooth"
+= Opens Bluetooth settings (Windows has no command to switch Bluetooth directly).
+
+? webcam | camera device | which camera do I have
+Get-PnpDevice -PresentOnly | Where-Object { $_.Class -in 'Camera', 'Image' } | Select-Object FriendlyName, Status
+= Lists cameras.
+
+? keyboard and mouse | input devices | which mouse do I have
+Get-PnpDevice -PresentOnly | Where-Object { $_.Class -in 'Keyboard', 'Mouse' } | Select-Object FriendlyName, Class, Status
+= Lists keyboards and mice.
+
+## Printers
+
+? printers | list printers | installed printers
+Get-Printer | Select-Object Name, DriverName, PortName, PrinterStatus, Shared
+= Lists installed printers.
+
+? default printer | which printer is the default
+Get-CimInstance Win32_Printer -Filter "Default=True" | Select-Object Name
+= Shows the default printer.
+
+? set default printer to {text} | make {text} the default printer
+(Get-CimInstance Win32_Printer | Where-Object Name -like '*{{text}}*' | Select-Object -First 1) | Invoke-CimMethod -MethodName SetDefaultPrinter | Out-Null; Get-CimInstance Win32_Printer -Filter "Default=True" | Select-Object Name
+= Makes the printer whose name contains "{text}" the default.
+
+? print {file} | print the file {file}
+Start-Process -FilePath "{{folder}}\{{file}}" -Verb Print
+= Sends {file} to the default printer.
+& folder=.
+
+? clear the print queue | cancel all print jobs | stuck print job
+Get-Printer | ForEach-Object { Get-PrintJob -PrinterName $_.Name } | Remove-PrintJob; 'Print queue cleared.'
+= Cancels all waiting print jobs.
+
+? print jobs | what is printing | print queue
+Get-Printer | ForEach-Object { Get-PrintJob -PrinterName $_.Name } | Select-Object PrinterName, DocumentName, JobStatus, SubmittedTime
+= Shows the waiting print jobs.
+
+## Environment
+
+? environment variables | list env vars | show environment
+Get-ChildItem Env: | Sort-Object Name | Select-Object Name, Value
+= Lists the environment variables.
+
+? show path | what is in my path | path entries | path variable
+$env:Path -split ';' | Where-Object { $_ }
+= Lists every folder on PATH.
+
+? add {folder} to path | add a folder to path permanently | put {folder} in path
+$p = [Environment]::GetEnvironmentVariable('Path', 'User'); $f = (Resolve-Path "{{folder}}").Path; if (($p -split ';') -notcontains $f) { [Environment]::SetEnvironmentVariable('Path', ($p.TrimEnd(';') + ';' + $f), 'User'); $env:Path += ";$f"; "Added $f to your PATH." } else { "$f is already on PATH." }
+= Adds {folder} to your user PATH (new terminals see it).
+& folder=.
+
+? set environment variable {name} | create the variable {name}
+[Environment]::SetEnvironmentVariable('{{name}}', '<value>', 'User'); 'Saved. New terminals will see it.'
+= Saves the user variable {name}; type its value where it says <value>.
