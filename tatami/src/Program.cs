@@ -11,15 +11,15 @@ using System.Threading;
 [assembly: AssemblyDescription("See what fills your disk")]
 [assembly: AssemblyCompany("Alexander Gubric")]
 [assembly: AssemblyCopyright("© 2026 Alexander Gubric · MIT License")]
-[assembly: AssemblyVersion("0.10.1.0")]
-[assembly: AssemblyFileVersion("0.10.1.0")]
-[assembly: AssemblyInformationalVersion("0.10.1")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0.0")]
 
 namespace Tatami
 {
     static class Program
     {
-        public const string Version = "0.10.1";
+        public const string Version = "1.0.0";
         public const int DefaultPort = 52695;
         public static bool NoHistory;    // CLI/test runs and the elevated helper don't write scan history
 

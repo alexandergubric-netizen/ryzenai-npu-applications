@@ -17,7 +17,7 @@ Only the newest release of each app gets security fixes.
 | Sensei | 2.0.2 |
 | Kaizen 5S | 1.0.1 |
 | Postura | 1.0.4 |
-| Tatami | 0.10.1 (beta) |
+| Tatami | 1.0.0 |
 
 ## How the apps protect you
 
