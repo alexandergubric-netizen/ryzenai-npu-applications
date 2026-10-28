@@ -47,7 +47,7 @@ def _edition():
 EDITION = _edition()
 APP = "Kaizen 5S"
 DISPLAY_NAME = EDITION.get("display_name") or APP
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 PUBLISHER = "Alexander Gubric"
 COPYRIGHT = "© 2026 Alexander Gubric"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Kaizen5S"
@@ -57,7 +57,7 @@ CREATE_NO_WINDOW = 0x08000000
 
 # FastFlowLM itself is pinned and verified in safety.py; LM Studio must carry its publisher's signature
 LMS_SIGNER = "O=Element Labs Inc."
-FLM_MODEL = "qwen3:4b"
+FLM_MODEL = "qwen3-it:4b"
 FLM_MIN_DRIVER = (32, 0, 203, 311)
 LMS_MODELS = ["qwen/qwen3-4b-2507", "qwen/qwen3-4b"]
 NPU_CLASS = r"SYSTEM\CurrentControlSet\Control\Class\{f01a9d53-3ff6-48d2-9f97-c8a7004be10c}"

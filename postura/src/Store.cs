@@ -25,7 +25,7 @@ namespace Postura
             { "moveEnabled", false }, { "moveInterval", 45 },
             { "autostart", true }, { "theme", "system" }, { "motion", "full" },
             // set by the installer after its hardware check; "" = this PC runs Postura without the assistant
-            { "aiEngine", "" }, { "aiModel", "" }, { "aiEnabled", false }
+            { "aiEngine", "" }, { "aiModel", "" }, { "aiEnabled", false }, { "aiPmode", "performance" }
         };
 
         public static string DataDir
@@ -89,6 +89,7 @@ namespace Postura
             if (key == "motion") return v is string && new[] { "full", "reduced" }.Contains((string)v);
             if (key == "remindStyle") return v is string && new[] { "notify", "card", "both" }.Contains((string)v);
             if (key == "aiEngine") return v is string && new[] { "", "flm", "foundry" }.Contains((string)v);
+            if (key == "aiPmode") return v is string && FlmShare.Pmodes.Contains((string)v);
             return v is string;
         }
 

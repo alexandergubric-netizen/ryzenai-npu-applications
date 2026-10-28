@@ -12,7 +12,7 @@ Python, ffmpeg, pandoc and every library come inside. Morph installs per user, w
 `%LOCALAPPDATA%\Programs\Morph`, and removes cleanly from Settings → Apps.
 
 * **AMD Ryzen AI 300/400/Max (NPU):** setup explains that the AI advisor needs **FastFlowLM**, a free engine and a
-  separate program. It can install FastFlowLM (Windows asks for permission) and download the `qwen3:4b` model
+  separate program. It can install FastFlowLM (Windows asks for permission) and download the `qwen3-it:4b` model
   (~3.1 GB). You can also skip this and turn it on later in **Morph → Settings → AI format advisor**, the NPU
   enabler.
 * **Intel and every other PC:** Morph installs in **converter mode**. All conversions work, and the format
@@ -69,7 +69,7 @@ styled HTML, then Edge printing. When a route loses something, the format's tool
 | Microsoft Edge (headless) | HTML → PDF |
 | pandas, openpyxl, pyarrow… | spreadsheets and data |
 | LibreOffice *(optional, install button in Settings)* | exact Office layouts, DOC/PPT/XLS |
-| FastFlowLM (`qwen3:4b` by default) | the AI advisor on the NPU |
+| FastFlowLM (`qwen3-it:4b` by default) | the AI advisor on the NPU |
 
 ## The AI advisor
 
@@ -89,3 +89,12 @@ It reuses a FastFlowLM server that is already running on port 52625 (for example
 * `tests/smoke.py`: makes sample files and converts each to every target (`python tests/smoke.py`)
 
 Settings and logs live in `%LOCALAPPDATA%\Morph`.
+
+## The shared AI engine
+
+Washi, Morph, Sensei, Kaizen 5S and Postura share one FastFlowLM server on 127.0.0.1:52625
+(`core/flmshare.py`). Whichever app starts it uses the model's full 32k context (`--ctx-len 32768`, about 8.4 GB of RAM; it costs
+memory, not speed) and your NPU power mode (default **performance**; **turbo** is about as fast, balanced is about 40 %
+slower). Changing the model loads it in place in about 15–20 s, with no restart; changing the power mode restarts the
+server. If the server disappears, the app starts it again and retries the question. The server stops when the last
+app using it closes.

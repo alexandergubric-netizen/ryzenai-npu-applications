@@ -16,7 +16,7 @@ import urllib.request
 from . import config, hw
 
 CREATE_NO_WINDOW = 0x08000000
-MODEL_GB = 3.1   # qwen3:4b
+MODEL_GB = 3.1   # qwen3-it:4b
 state = {"task": None, "label": "", "pct": None, "detail": "", "error": ""}
 _lock = threading.Lock()
 
@@ -38,6 +38,9 @@ def status():
     h = hw.check(refresh=state["task"] is None)
     have = models() if h["flm"] else []
     model = config.get()["model"]
+    if have and model not in have:   # the chosen model was removed: use the default, or any downloaded chat model
+        model = "qwen3-it:4b" if "qwen3-it:4b" in have else have[0]
+        config.update({"model": model})
     ready = h["supported"] and h["flm"] and model in have
     return {**h, "models": have, "model": model, "has_model": model in have, "ready": ready,
             "job": dict(state), "model_gb": MODEL_GB}

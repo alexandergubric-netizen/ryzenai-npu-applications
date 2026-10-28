@@ -40,7 +40,7 @@ stopped at any time.
 ## AI engines
 | Your PC | Engine | Model |
 |---|---|---|
-| AMD Ryzen AI 300/400 (XDNA 2 NPU), Windows 11, NPU driver 32.0.203.311 or newer | FastFlowLM | `qwen3:4b` on the NPU |
+| AMD Ryzen AI 300/400 (XDNA 2 NPU), Windows 11, NPU driver 32.0.203.311 or newer | FastFlowLM | `qwen3-it:4b` on the NPU |
 | Any other Windows PC (Intel, older AMD, NVIDIA, Snapdragon) | LM Studio | Qwen3 4B on the CPU/GPU |
 
 Kaizen still works without any AI. You get scans, the 5S scores, the map and all the actions, just without the
@@ -58,3 +58,12 @@ scanned files, AI descriptions and a log of every action for Undo), cached thumb
 unused) and `kaizen.log`. Uninstalling offers to delete all of it.
 To build the installers (written to `Documents\Apps by Alex`):
 `python installer\build.py` builds the public edition; `--edition <id>` builds an edition defined in `editions\<id>.json`.
+
+## The shared AI engine
+
+Washi, Morph, Sensei, Kaizen 5S and Postura share one FastFlowLM server on 127.0.0.1:52625
+(`core/flmshare.py`). Whichever app starts it uses the model's full 32k context (`--ctx-len 32768`, about 8.4 GB of RAM; it costs
+memory, not speed) and your NPU power mode (default **performance**; **turbo** is about as fast, balanced is about 40 %
+slower). Changing the model loads it in place in about 15–20 s, with no restart; changing the power mode restarts the
+server. If the server disappears, the app starts it again and retries the question. The server stops when the last
+app using it closes.

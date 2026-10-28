@@ -15,11 +15,31 @@ from .llm import Cancelled, npu
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDE_FILE = os.path.join(HERE, "web", "guide.json")
 CHARS_PER_TOKEN = 3.6
-SINGLE_PASS_CHARS = 20000      # ~5.5k tokens: summarise in one go below this
-PART_CHARS = 14000             # map step size for longer documents
-ANSWER_CONTEXT_CHARS = 11000   # retrieved excerpts for a question
+# How much document text fits is sized from the context the running FastFlowLM server really has (32k when one of
+# our apps started it): measured with qwen3-it:4b, English is 3.6 characters per token but Slovak only 2.3, so
+# plan with 2.2. Longer prompts are slower per token, so parts and question excerpts are capped.
+SAFE_CHARS_PER_TOKEN = 2.2
+MAX_PART_CHARS = 45000         # ~12k tokens per part of a very long document
+MAX_ANSWER_CHARS = 20000       # retrieved excerpts for a question (~10 s to read at "performance")
 
 _guide = []
+
+
+def _fits(out_tokens, overhead=900):
+    """Characters of document text that fit in the server's context next to the instructions and the answer."""
+    return max(4000, int((npu.ctx - out_tokens - overhead) * SAFE_CHARS_PER_TOKEN))
+
+
+def single_pass_chars():
+    return _fits(750)              # ~68k characters at 32k context: summarise in one go below this
+
+
+def part_chars():
+    return min(MAX_PART_CHARS, _fits(260))
+
+
+def answer_context_chars():
+    return min(MAX_ANSWER_CHARS, int(_fits(500) * 0.6))   # leaves room for the conversation so far
 
 
 def guide():
@@ -65,6 +85,8 @@ def _stream(messages, max_tokens):
     for kind, piece in npu.stream(messages, max_tokens=max_tokens, temperature=0.2):
         if kind == "text":
             yield {"type": "text", "text": piece}
+        elif kind == "status":
+            yield {"type": "status", "text": piece}
         else:
             yield {"type": "thinking"}
 
@@ -77,6 +99,8 @@ def _guarded(gen):
         yield {"type": "done", "tps": npu.tps, "secs": round(time.time() - t0, 1)}
     except Cancelled:
         yield {"type": "done", "cancelled": True}
+    except RuntimeError as e:
+        yield {"type": "error", "text": str(e)}
     except OSError as e:
         yield {"type": "error", "text": f"The AI engine stopped answering ({e}). Try again in a moment."}
 
@@ -107,20 +131,26 @@ def _summarize(pages, name, style):
     instr = STYLES.get(style, STYLES["bullets"])
     system = ("You summarise documents accurately. Use only facts from the text; never invent numbers, names or dates. "
               "Plain markdown, no preamble." + lang_rule)
-    if total <= SINGLE_PASS_CHARS:
+    if total <= single_pass_chars():
         body = "\n\n".join(f"[Page {i + 1}]\n{p}" for i, p in enumerate(pages) if p)
         yield {"type": "status", "text": f"Reading {len(pages)} page{'s' * (len(pages) != 1)}…"}
-        yield from _stream([{"role": "system", "content": system},
-                            {"role": "user", "content": f"Document: {name}\n\n{body}\n\n---\n{instr}"}],
-                           max_tokens=700 if style == "detailed" else 450)
-        return
+        try:
+            yield from _stream([{"role": "system", "content": system},
+                                {"role": "user", "content": f"Document: {name}\n\n{body}\n\n---\n{instr}"}],
+                               max_tokens=700 if style == "detailed" else 450)
+            return
+        except RuntimeError as e:      # more tokens than the server's context after all: read it in parts instead
+            if "refused" not in str(e):
+                raise
+            yield {"type": "status", "text": "Too long to read in one go - reading it in parts…"}
     # map: notes per part, reduce: one summary
+    size = part_chars()
     parts, cur, first = [], "", 0
     for i, p in enumerate(pages):
-        if cur and len(cur) + len(p) > PART_CHARS:
+        if cur and len(cur) + len(p) > size:
             parts.append((first, i - 1, cur))
             cur, first = "", i
-        cur += f"\n[Page {i + 1}]\n{p[:PART_CHARS]}"
+        cur += f"\n[Page {i + 1}]\n{p[:size]}"
     if cur:
         parts.append((first, len(pages) - 1, cur))
     if len(parts) > 14:   # very long documents: keep every part but squeeze each one
@@ -128,7 +158,7 @@ def _summarize(pages, name, style):
         merged = []
         for k in range(0, len(parts), step):
             grp = parts[k:k + step]
-            merged.append((grp[0][0], grp[-1][1], "".join(g[2][:PART_CHARS // step] for g in grp)))
+            merged.append((grp[0][0], grp[-1][1], "".join(g[2][:size // step] for g in grp)))
         parts = merged
     notes = []
     for n, (a, b, text) in enumerate(parts, 1):
@@ -165,7 +195,8 @@ def chunks(pages, size=1100):
     return out
 
 
-def retrieve(pages, question, budget=ANSWER_CONTEXT_CHARS):
+def retrieve(pages, question, budget=None):
+    budget = budget or answer_context_chars()
     cs = chunks(pages)
     if not cs:
         return []

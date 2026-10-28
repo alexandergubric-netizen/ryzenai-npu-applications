@@ -17,7 +17,7 @@ DEFAULTS = {
     "gpu": True,               # Radeon AMF video encoders when they work
     "ai": True,                # format advice from the NPU model
     "auto_advise": True,       # ask the model as soon as a file arrives
-    "model": "qwen3:4b",       # FastFlowLM model tag
+    "model": "qwen3-it:4b",       # FastFlowLM model tag
     "flm_port": 52625,         # FastFlowLM's default port; an already running server is reused
     "pmode": "performance",
     "parallel": 2,             # conversions running at the same time

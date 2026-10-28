@@ -24,7 +24,7 @@ from core.recipes import library  # noqa: E402
 from core.shell import CATALOG, shell  # noqa: E402
 from core.websec import Gate  # noqa: E402
 
-VERSION = "2.0.2"
+VERSION = "2.0.3"
 PORT = int(os.environ.get("SENSEI_PORT") or 52690)   # SENSEI_PORT: tests run a second copy elsewhere
 WEB = os.path.join(HERE, "web")
 # the window gets a session cookie through a one-time launch key; the page itself holds no secret
@@ -224,8 +224,13 @@ class Handler(BaseHTTPRequestHandler):
             before = config.get()
             after = config.update(body)
             if after["model"] != before["model"]:
-                threading.Thread(target=npu.warmup, args=(after["model"],), daemon=True).start()
+                npu.request_switch()          # live: FastFlowLM swaps the model in place
+            if after["pmode"] != before["pmode"]:
+                npu.apply_pmode()             # restarts the server unless another app is using it
             return self._json(after)
+        if path == "/api/models/refresh":
+            state["models"] = npu.downloaded_models() or state["models"]
+            return self._json({"models": state["models"]})
         if path == "/api/ping":
             return self._json({"ok": True})
         return self._json({"error": "not found"}, 404)

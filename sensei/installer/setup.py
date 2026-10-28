@@ -37,7 +37,7 @@ sys.path.insert(0, HERE)
 import safety  # noqa: E402
 
 APP = "Sensei"
-VERSION = "2.0.2"
+VERSION = "2.0.3"
 PUBLISHER = "Alexander Gubric"
 COPYRIGHT = "© 2026 Alexander Gubric"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Sensei"

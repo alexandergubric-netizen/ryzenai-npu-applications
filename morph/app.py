@@ -28,7 +28,7 @@ from core.jobs import jobs  # noqa: E402
 from core.llm import npu  # noqa: E402
 from core.websec import Gate  # noqa: E402
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 PORT = int(os.environ.get("MORPH_PORT") or 52691)   # MORPH_PORT: tests run a second copy elsewhere
 WEB = os.path.join(HERE, "web")
 # the window gets a session cookie through a one-time launch key; the page itself holds no secret
@@ -285,7 +285,9 @@ class Handler(BaseHTTPRequestHandler):
             before = config.get()
             after = config.update(body)
             if after["model"] != before["model"] and after["ai"] and state["ai"]["ready"]:
-                threading.Thread(target=npu.warmup, args=(after["model"],), daemon=True).start()
+                npu.request_switch()          # live: FastFlowLM swaps the model in place
+            if after["pmode"] != before["pmode"] and after["ai"] and state["ai"]["ready"]:
+                npu.apply_pmode()             # restarts the server unless another app is using it
             if after["ai"] and not before["ai"] and state["ai"]["ready"]:
                 npu.ensure()
             return self._json(after)

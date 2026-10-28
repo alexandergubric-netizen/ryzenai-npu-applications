@@ -83,3 +83,12 @@ an AMD Ryzen AI 300/400/Max NPU. Without the AI, Sensei still answers from its l
 video/audio tasks. Settings, the command catalog and the log live in `%LOCALAPPDATA%\Sensei`.
 
 © 2026 Alexander Gubric · MIT License
+
+## The shared AI engine
+
+Washi, Morph, Sensei, Kaizen 5S and Postura share one FastFlowLM server on 127.0.0.1:52625
+(`core/flmshare.py`). Whichever app starts it uses the model's full 32k context (`--ctx-len 32768`, about 8.4 GB of RAM; it costs
+memory, not speed) and your NPU power mode (default **performance**; **turbo** is about as fast, balanced is about 40 %
+slower). Changing the model loads it in place in about 15–20 s, with no restart; changing the power mode restarts the
+server. If the server disappears, the app starts it again and retries the question. The server stops when the last
+app using it closes.

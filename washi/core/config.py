@@ -15,9 +15,9 @@ DEFAULTS = {
     "accent": "indigo",       # indigo | vermilion | matcha | gold
     "splash": True,
     "ai": True,               # the person's switch; only matters on PCs that can run the AI
-    "model": "qwen3:4b",
+    "model": "qwen3-it:4b",
     "flm_port": 52625,
-    "pmode": "balanced",
+    "pmode": "performance",   # FastFlowLM's own default; ~40 % faster than balanced on this NPU
     "author": os.environ.get("USERNAME", "") or "Me",
     "page_dark": False,       # invert page colours in dark theme (reading mode)
     "zoom": "fit-width",

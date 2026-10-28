@@ -40,7 +40,7 @@ Qwen3/Qwen3.5 hybrid models get `/no_think` so they answer directly.
 
 If the engine or model is missing, the installer offers to download and install it (the FastFlowLM MSI asks for admin
 permission; Foundry Local comes through winget). An AI failure never blocks Postura itself. The engine starts only when
-the assistant is opened. A FastFlowLM server that Postura started stops after 10 idle minutes; Foundry Local has a
+the assistant is opened. After 10 idle minutes Postura stops using FastFlowLM (the server stops if no other app uses it); Foundry Local has a
 15-minute idle timeout. Silent install for IT: `Postura-Setup.exe --install --ai` (AI only if the check passes).
 
 ## Reminders
@@ -78,3 +78,12 @@ Uninstall from Settings → Apps, or `Postura.exe --uninstall [--quiet]`.
 
 Where each recommendation comes from: Settings → About → Sources.
 General guidance, not medical advice.
+
+## The shared AI engine
+
+Washi, Morph, Sensei, Kaizen 5S and Postura share one FastFlowLM server on 127.0.0.1:52625
+(`src/FlmShare.cs`). Whichever app starts it uses the model's full 32k context (`--ctx-len 32768`, about 8.4 GB of RAM; it costs
+memory, not speed) and your NPU power mode (default **performance**; **turbo** is about as fast, balanced is about 40 %
+slower). Changing the model loads it in place in about 15–20 s, with no restart; changing the power mode restarts the
+server. If the server disappears, the app starts it again and retries the question. The server stops when the last
+app using it closes.

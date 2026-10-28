@@ -83,6 +83,9 @@ def advise(e, question=None, history=None, model=None):
         return text.rstrip(" *\n") if (i >= 0 or final) else text
 
     for kind, piece in npu.stream(msgs, max_tokens=420, temperature=0.3, model=model):
+        if kind == "status":          # e.g. the AI engine is being restarted
+            yield "status", piece
+            continue
         if kind != "text":
             yield "think", piece
             continue

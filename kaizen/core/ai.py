@@ -5,6 +5,7 @@ Two engines speak the same OpenAI-compatible API:
   * LM Studio  - runs on any PC (CPU/GPU), used when there is no Ryzen AI NPU.
 """
 import base64
+import http.client
 import io
 import json
 import os
@@ -18,8 +19,9 @@ import urllib.request
 import zipfile
 import zlib
 
-from . import db, edition, winshell
+from . import db, edition, flmshare, winshell
 
+APP = "Kaizen"
 FLM_CANDIDATES = [os.path.expandvars(r"%ProgramFiles%\flm\flm.exe"), r"C:\Program Files\flm\flm.exe"]
 LMS_CANDIDATES = [os.path.expanduser(r"~\.lmstudio\bin\lms.exe"),
                   os.path.expandvars(r"%LOCALAPPDATA%\Programs\LM Studio\resources\app\.webpack\lms.exe")]
@@ -55,7 +57,11 @@ class Engine:
         self.tps = None
         self.ttft = None
         self.model = None
+        self.loaded = None            # the model FastFlowLM has on the NPU right now (as far as Kaizen knows)
+        self.ctx = flmshare.CTX_LEN
         self.lock = threading.Lock()  # one generation at a time
+        self._switching = False
+        self._switch_lock = threading.Lock()
 
     # ---------------------------------------------------------------- discovery
     @staticmethod
@@ -128,19 +134,24 @@ class Engine:
 
     def _start_flm(self):
         s = db.get_settings()
+        have = self.downloaded_models()
+        if have and s["model"] not in have:   # the chosen model was removed: use the default or any downloaded one
+            s = db.save_settings({"model": "qwen3-it:4b" if "qwen3-it:4b" in have else have[0]})
         self.model = s["model"]
-        if not _ping(self.base):
+        if _ping(self.base):
+            flmshare.join(APP)        # another app's server: FastFlowLM swaps models per request
+        else:
             try:
-                self.proc = subprocess.Popen(
-                    [self.flm_exe(), "serve", self.model, "--port", str(s["flm_port"]), "--pmode", s["pmode"]],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=CREATE_NO_WINDOW)
+                self.proc = flmshare.start(self.flm_exe(), self.model, s["flm_port"], s["pmode"], APP)
             except OSError as e:
                 self.state, self.detail = "offline", str(e)
                 return
-            if not self._wait(self.base, self.proc, 180):
+            if not self._wait(self.base, self.proc, 180) and not _ping(self.base):
                 self.state, self.detail = "offline", "FastFlowLM did not start (is the NPU driver up to date?)"
                 return
+        self.loaded = None
         self._warmup()
+        self.request_switch()         # the choice may have changed while the server was starting
 
     def _start_lms(self):
         s = db.get_settings()
@@ -172,26 +183,100 @@ class Engine:
 
     def _warmup(self):
         """A one-token request so the weights are loaded before the first real question."""
-        self.detail = f"Loading {self.model}…"
+        switching = self.kind == "flm" and self.loaded not in (None, self.model)
+        self.state = "starting"
+        self.detail = f"Switching to {self.model}… (about 15–20 s)" if switching else f"Loading {self.model}…"
         try:
-            self.complete([{"role": "user", "content": "hi"}], max_tokens=1)
-            self.state, self.detail = "online", ""
-        except (urllib.error.URLError, OSError, ValueError) as e:
+            if self.kind == "flm":
+                body = json.dumps({"model": self.model, "messages": [{"role": "user", "content": "hi"}],
+                                   "max_tokens": 1, "temperature": 0.2, "stream": False}).encode()
+                req = urllib.request.Request(self.base + "/chat/completions", body, {"Content-Type": "application/json"})
+                with self.lock, urllib.request.urlopen(req, timeout=300) as r:
+                    self.ctx = flmshare.ctx_from_usage(json.load(r).get("usage") or {}) or self.ctx
+            else:
+                self.complete([{"role": "user", "content": "hi"}], max_tokens=1)
+            self.loaded = self.model
+            if self.kind == "flm" and db.get_settings()["model"] != self.model:   # chosen again meanwhile: keep switching
+                self.detail = f"Switching to {db.get_settings()['model']}… (about 15–20 s)"
+            else:
+                self.state, self.detail = "online", ""
+        except (urllib.error.URLError, OSError, ValueError, RuntimeError) as e:
+            self.loaded = None
             self.state, self.detail = "offline", f"The model failed to load: {e}"
 
+    def request_switch(self):
+        """FastFlowLM: make the model on the NPU match the chosen one - live, no restart. A second change made while
+        the first is loading is not lost: the loop runs until the loaded model is the latest choice."""
+        if self.kind != "flm":
+            return
+        with self._switch_lock:
+            if self._switching or self.state not in ("online", "starting") or not _ping(self.base):
+                return
+            self._switching = True
+
+        def run():
+            try:
+                while db.get_settings()["model"] != self.loaded:
+                    self.model = db.get_settings()["model"]
+                    self._warmup()
+                    if self.state == "offline":   # the load failed
+                        break
+            finally:
+                with self._switch_lock:
+                    self._switching = False
+            if self.state == "online" and db.get_settings()["model"] != self.loaded:
+                self.request_switch()
+        threading.Thread(target=run, daemon=True).start()
+
     def restart(self):
-        self.stop()
+        """After a change of engine, port or power mode: stop the FastFlowLM server (unless another app uses it)
+        and start again with the new settings. A model change alone never comes here - see request_switch."""
+        if self.kind == "flm" and not flmshare.others_using(APP):
+            with self.lock:           # never in the middle of an answer
+                flmshare.stop_server()
+        self.proc, self.loaded = None, None
         self.state = "offline"
         self.ensure()
 
     def stop(self):
-        if self.proc and self.proc.poll() is None:
-            self.proc.terminate()   # only FastFlowLM servers we started ourselves; LM Studio is left alone
+        """Kaizen is closing: a FastFlowLM server stops too unless another app still uses it; LM Studio is left alone."""
+        if self.kind == "flm":
+            flmshare.leave(APP, db.get_settings()["flm_port"])
         self.proc = None
+
+    def _heal(self):
+        """FastFlowLM went away (another app or a crash stopped it): start it again and wait (up to 3 minutes)."""
+        self.state, self.loaded, self.proc = "offline", None, None
+        self.ensure()
+        t0 = time.time()
+        while self.state == "starting" and time.time() - t0 < 180:
+            time.sleep(0.5)
+        return self.state == "online"
 
     # ---------------------------------------------------------------- generation
     def stream(self, messages, max_tokens=400, model=None, temperature=0.3):
-        """Yield the answer text piece by piece, with any <think> reasoning removed."""
+        """Yield the answer text piece by piece, with any <think> reasoning removed. If FastFlowLM is gone, start it
+        again and retry once; if it dies mid-answer, raise RuntimeError with a clear message."""
+        sent = False
+        for attempt in (1, 2):
+            try:
+                for piece in self._stream(messages, max_tokens, model, temperature):
+                    sent = True
+                    yield piece
+                return
+            except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
+                if isinstance(e, urllib.error.HTTPError) or not flmshare.lost(e):
+                    raise
+                if self.kind != "flm" or sent or attempt == 2:
+                    self.state, self.loaded = "offline", None
+                    threading.Thread(target=self.ensure, daemon=True).start()
+                    raise RuntimeError("The AI engine stopped while answering. It is restarting - "
+                                       "ask again in a moment.") from e
+                if not self._heal():
+                    raise RuntimeError("The AI engine could not be restarted"
+                                       + (f" ({self.detail})" if self.detail else "") + ".") from e
+
+    def _stream(self, messages, max_tokens=400, model=None, temperature=0.3):
         model = model or self.model or db.get_settings()["model"]
         msgs = [dict(m) for m in messages]
         if re.search(r"qwen3(?!.*(2507|instruct|-it|vl))", model, re.I):
@@ -256,6 +341,8 @@ class Engine:
             if first and n > 4:
                 self.tps = round(n / max(time.time() - first, 0.01), 1)
                 self.ttft = round(first - t0, 2)
+            if self.kind == "flm":
+                self.loaded = model
 
     def complete(self, messages, **kw):
         return "".join(self.stream(messages, **kw)).strip()

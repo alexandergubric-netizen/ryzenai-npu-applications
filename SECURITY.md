@@ -12,11 +12,11 @@ Only the newest release of each app gets security fixes.
 
 | App | Supported |
 |---|---|
-| Washi | 1.0.3 |
-| Morph | 1.0.1 |
-| Sensei | 2.0.2 |
-| Kaizen 5S | 1.0.1 |
-| Postura | 1.0.4 |
+| Washi | 1.0.4 |
+| Morph | 1.0.2 |
+| Sensei | 2.0.3 |
+| Kaizen 5S | 1.0.2 |
+| Postura | 1.0.5 |
 | Tatami | 1.0.0 |
 
 ## How the apps protect you

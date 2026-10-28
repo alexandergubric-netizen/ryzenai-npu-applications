@@ -16,7 +16,7 @@ DEFAULTS = {
     "protect_media": True,      # photos/videos/music in their libraries are memories, not clutter
     "extra_roots": [],          # additional folders/drives to scan
     "skip_roots": [],           # default folders the user turned off
-    "model": "qwen3:4b",
+    "model": "qwen3-it:4b",
     "vision_model": "",         # e.g. qwen3vl-it:4b once downloaded
     "auto_describe": True,
     "engine": "auto",           # auto | flm (AMD Ryzen AI NPU) | lmstudio (any PC)

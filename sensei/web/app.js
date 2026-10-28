@@ -662,8 +662,11 @@ $("#send").addEventListener("click", submit);
 $("#mode").addEventListener("click", () => setMode(S.mode === "ps" ? "ask" : "ps"));
 
 // ------------------------------------------------------------------ settings and status
-$("#settings-btn").addEventListener("click", e => { e.stopPropagation(); $("#settings").hidden = !$("#settings").hidden; });
-$("#status").addEventListener("click", e => { e.stopPropagation(); $("#settings").hidden = !$("#settings").hidden; });
+// opening Settings re-reads the downloaded models, so ones added with `flm pull` meanwhile show up
+const toggleSettings = e => { e.stopPropagation(); $("#settings").hidden = !$("#settings").hidden; if (!$("#settings").hidden) api("/api/models/refresh").then(refresh).catch(() => {}); };
+$("#settings-btn").addEventListener("click", toggleSettings);
+$("#status").addEventListener("click", toggleSettings);
+$("#set-pmode").addEventListener("change", async e => { S.settings = await api("/api/settings", { pmode: e.target.value }); refresh(); });
 document.addEventListener("click", e => { if (!$("#settings").contains(e.target)) $("#settings").hidden = true; });
 $("#set-model").addEventListener("change", async e => { S.settings = await api("/api/settings", { model: e.target.value }); refresh(); });
 $("#set-autorun").addEventListener("change", async e => { S.settings = await api("/api/settings", { autorun: e.target.checked }); });
@@ -772,7 +775,8 @@ async function refresh() {
   if (sel.options.length !== models.length || sel.value !== model) {
     sel.innerHTML = models.map(m => `<option value="${esc(m)}" ${m === model ? "selected" : ""}>${esc(m)}${st.recommended === m ? " ★" : ""}</option>`).join("");
   }
-  $("#model-note").textContent = st.recommended ? `★ ${st.recommended} is the fastest accurate model on this PC` : "";
+  $("#model-note").textContent = (st.recommended ? `★ ${st.recommended} is the fastest accurate model on this PC. ` : "") + "A new model loads in place in about 15–20 s.";
+  if (document.activeElement !== $("#set-pmode")) $("#set-pmode").value = st.settings.pmode || "performance";
   $("#set-autorun").checked = !!st.settings.autorun;
   $("#set-router").checked = st.settings.router !== false;
   $("#set-info").textContent = `${st.recipes} tested tasks · ${st.catalog ? "command catalog ready" : "building command catalog…"} · PowerShell ${S.env.ps || ""}${S.env.admin ? " · admin" : ""}`;

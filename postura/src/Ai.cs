@@ -11,16 +11,17 @@ namespace Postura
 {
     /// <summary>
     /// The assistant's local model. Both engines speak the OpenAI chat API on 127.0.0.1:
-    ///   flm      FastFlowLM, port 52625 (shared with other apps; started by us only if nobody else runs it)
+    ///   flm      FastFlowLM, port 52625, shared with Washi, Morph, Sensei and Kaizen 5S (see FlmShare): a model change is
+    ///            loaded in place, and the server is stopped by whichever app is the last to stop using it
     ///   foundry  Microsoft Foundry Local, fixed port 39839, with an idle timeout so it frees its memory
-    /// Nothing starts until the assistant is opened; a FastFlowLM server we started stops after 10 idle minutes.
+    /// Nothing starts until the assistant is opened; after 10 idle minutes Postura stops using FastFlowLM.
     /// </summary>
     static class Ai
     {
         const int FlmPort = 52625, FoundryPort = 39839;
         public static string State = "off", Detail = "";     // off | starting | ready | error
-        static string baseUrl, modelId;
-        static Process ownProc;
+        static string baseUrl, modelId, loaded;
+        static bool joined;           // Postura is registered as a user of the shared FastFlowLM server
         static int generation;        // bumped by Reset so a start that was already under way can't mark the old model ready
         static DateTime lastUse = DateTime.MinValue;
         static readonly object startLock = new object(), genLock = new object();
@@ -57,7 +58,7 @@ namespace Postura
                 try
                 {
                     if (Engine == "flm") StartFlm(); else StartFoundry();
-                    Detail = "Loading the model…";
+                    Detail = loaded != null && loaded != modelId ? "Switching to " + modelId + "… (about 15–20 s)" : "Loading the model…";
                     Generate(new[] { new { role = "user", content = "hi" } }, 1, s => { });
                     if (g == generation) { State = "ready"; Detail = ""; }
                 }
@@ -77,15 +78,20 @@ namespace Postura
             if (model == "") model = Hardware.FlmModel;
             baseUrl = "http://127.0.0.1:" + FlmPort + "/v1";
             modelId = model;
-            if (Ping(baseUrl)) return;   // another app's FastFlowLM server: it swaps models per request
+            if (Ping(baseUrl)) { FlmShare.Join(); joined = true; return; }   // running already: it swaps models per request
             string exe = Hardware.FlmExe();
             if (exe == null) throw new Exception("FastFlowLM is not installed any more. Run Postura setup again.");
-            ownProc = Process.Start(new ProcessStartInfo(exe, "serve " + model + " --port " + FlmPort)
-            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = false });
+            loaded = null;
+            var proc = FlmShare.Start(exe, model, FlmPort, Store.Str("aiPmode"));
+            joined = true;
             for (int i = 0; i < 360; i++)
             {
                 if (Ping(baseUrl)) return;
-                if (ownProc.HasExited) throw new Exception("FastFlowLM did not start (is the NPU driver up to date?)");
+                if (proc.HasExited)
+                {
+                    if (Ping(baseUrl)) return;   // another app started it at the same moment
+                    throw new Exception("FastFlowLM did not start (is the NPU driver up to date?)");
+                }
                 Thread.Sleep(500);
             }
             throw new Exception("FastFlowLM did not start in time.");
@@ -126,31 +132,46 @@ namespace Postura
             return Ping(url) ? url : null;
         }
 
-        /// <summary>Called every few seconds by the tray: stop a FastFlowLM server we started once it is idle.</summary>
+        /// <summary>Called every few seconds by the tray: after 10 idle minutes Postura stops using FastFlowLM, and the
+        /// server stops too unless another app (Washi, Sensei…) still uses it.</summary>
         public static void Housekeeping()
         {
-            if (ownProc == null || (DateTime.Now - lastUse).TotalMinutes < 10) return;
-            try { if (!ownProc.HasExited) ownProc.Kill(); } catch { }
-            ownProc = null;
+            if (!joined || (DateTime.Now - lastUse).TotalMinutes < 10) return;
+            Stop();
             State = "off";
         }
 
         public static void Stop()
         {
-            try { if (ownProc != null && !ownProc.HasExited) ownProc.Kill(); } catch { }
-            ownProc = null;
+            if (!joined) return;
+            joined = false;
+            loaded = null;
+            try { FlmShare.Leave(); } catch (Exception e) { Program.Log("flm leave: " + e.Message); }
         }
 
-        /// <summary>After a model change: the next question starts the engine with the new model.</summary>
+        /// <summary>After a model change. FastFlowLM: the new model is loaded in place now (no restart); Foundry
+        /// Local: the next question loads it.</summary>
         public static void Reset()
         {
             lock (startLock)
             {
                 generation++;
-                Stop();
                 State = "off"; Detail = "";
                 modelId = null;
             }
+            if (Enabled && Engine == "flm" && joined) Ensure();
+        }
+
+        /// <summary>A new power mode needs a FastFlowLM restart: done now unless another app is using the server.</summary>
+        public static void ApplyPmode()
+        {
+            if (Engine != "flm" || !joined || FlmShare.ServerPmode() == FlmShare.Pmode(Store.Str("aiPmode")) || FlmShare.OthersUsing()) return;
+            new Thread(() =>
+            {
+                lock (genLock) FlmShare.StopServer();   // never in the middle of an answer
+                lock (startLock) { generation++; State = "off"; Detail = ""; loaded = null; joined = false; }
+                if (Enabled) Ensure();
+            }) { IsBackground = true }.Start();
         }
 
         /// <summary>
@@ -159,10 +180,29 @@ namespace Postura
         /// </summary>
         public static void Generate(object messages, int maxTokens, Action<string> onText)
         {
+            bool sent = false;
+            Action<string> emit = s => { sent = true; onText(s); };
+            try { GenerateOnce(messages, maxTokens, emit); }
+            catch (WebException e)
+            {
+                // FastFlowLM went away (another app or a crash stopped it): start it again and ask once more
+                bool gone = e.Status == WebExceptionStatus.ConnectFailure || e.Status == WebExceptionStatus.ConnectionClosed
+                         || e.Status == WebExceptionStatus.ReceiveFailure || e.Status == WebExceptionStatus.KeepAliveFailure;
+                if (!gone || sent || Engine != "flm") throw;
+                Program.Log("ai: FastFlowLM was gone, starting it again");
+                loaded = null;
+                StartFlm();
+                GenerateOnce(messages, maxTokens, emit);
+            }
+        }
+
+        static void GenerateOnce(object messages, int maxTokens, Action<string> onText)
+        {
             lastUse = DateTime.Now;
             lock (genLock)
             {
-                var body = Ser.Serialize(new { model = modelId, messages = messages, stream = true, max_tokens = maxTokens, temperature = 0.3, top_p = 0.9 });
+                string model = modelId;
+                var body = Ser.Serialize(new { model = model, messages = messages, stream = true, max_tokens = maxTokens, temperature = 0.3, top_p = 0.9 });
                 var req = (HttpWebRequest)WebRequest.Create(baseUrl + "/chat/completions");
                 req.Method = "POST"; req.ContentType = "application/json"; req.Proxy = null;
                 req.Timeout = 300000; req.ReadWriteTimeout = 300000;
@@ -192,6 +232,7 @@ namespace Postura
                     }
                     filter.End();
                 }
+                loaded = model;
             }
             lastUse = DateTime.Now;
         }

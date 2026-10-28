@@ -11,15 +11,15 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Postura - healthy posture and 20-20-20 eye breaks")]
 [assembly: AssemblyCompany("Alexander Gubric")]
 [assembly: AssemblyCopyright("© 2026 Alexander Gubric · MIT License")]
-[assembly: AssemblyVersion("1.0.4.0")]
-[assembly: AssemblyFileVersion("1.0.3.0")]
-[assembly: AssemblyInformationalVersion("1.0.4")]
+[assembly: AssemblyVersion("1.0.5.0")]
+[assembly: AssemblyFileVersion("1.0.5.0")]
+[assembly: AssemblyInformationalVersion("1.0.5")]
 
 namespace Postura
 {
     static class Program
     {
-        public const string Version = "1.0.4";
+        public const string Version = "1.0.5";
         public const int DefaultPort = 52697;
         public const int SetupPort = 52710;
         public static string OpenEventName { get { return @"Local\Postura-Open-" + InstanceKey; } }

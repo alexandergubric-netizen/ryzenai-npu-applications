@@ -21,12 +21,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from core import assistant, assoc, config, docs, hw, winutil  # noqa: E402
+from core import assistant, assoc, config, docs, hw, llm, winutil  # noqa: E402
 from core.llm import npu  # noqa: E402
 from core.dpapi import protect, unprotect  # noqa: E402
 from core.websec import Gate  # noqa: E402
 
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 PORT = int(os.environ.get("WASHI_PORT") or 52694)
 WEB = os.path.join(HERE, "web")
 SIGNATURE_FILE = os.path.join(config.DATA_DIR, "signature.bin")   # the remembered signature, DPAPI-encrypted
@@ -63,6 +63,7 @@ def ai_public():
     s = config.get()
     return {"supported": h["supported"], "reason": h["reason"], "flm": h["flm"], "enabled": s["ai"] and h["supported"],
             "state": npu.state, "detail": npu.detail, "tps": npu.tps, "models": npu.models, "model": npu.model(),
+            "loaded": npu.loaded, "ctx": npu.ctx,
             "pull": npu.pull_pct, "cpu": h["cpu"], "npu": h["npu"], "flm_url": h["flm_url"]}
 
 
@@ -294,8 +295,10 @@ class Handler(BaseHTTPRequestHandler):
             after = config.update(b.get("set") or {})
             if after["ai"] and not before["ai"] and hw.check()["supported"]:
                 npu.ensure()
-            if after["model"] != before["model"] and after["ai"] and npu.state == "online":
-                threading.Thread(target=npu.warmup, args=(after["model"],), daemon=True).start()
+            if after["ai"] and after["model"] != before["model"]:
+                npu.request_switch()          # live: FastFlowLM swaps the model in place
+            if after["ai"] and after["pmode"] != before["pmode"]:
+                npu.apply_pmode()             # restarts the server unless another app is using it
             return self._json({"settings": after, "ai": ai_public()})
         if path == "/api/recent":
             return self._json(config.recent())
@@ -574,6 +577,8 @@ class Handler(BaseHTTPRequestHandler):
     # ------------------------------------------------------------------ AI
     def _ai(self, name, b):
         if name == "state":
+            if b.get("refresh") and npu.state != "pulling":
+                npu.models, npu.models_at = npu.downloaded_models() or npu.models, time.time()
             return self._json(ai_public())
         if name == "cancel":
             npu.cancel.set()
@@ -584,7 +589,7 @@ class Handler(BaseHTTPRequestHandler):
             npu.ensure()
             return self._json(ai_public())
         if name == "pull":
-            npu.pull(b.get("model") or "qwen3:4b")
+            npu.pull(b.get("model") or llm.DEFAULT_MODEL)
             return self._json(ai_public())
         if not config.get()["ai"]:
             raise ValueError("Local AI is turned off in Settings")

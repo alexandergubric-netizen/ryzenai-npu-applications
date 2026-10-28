@@ -93,8 +93,8 @@ function renderMsgs() {
   if (ai.state === "missing" || ai.state === "nomodel" || ai.state === "pulling") {
     box.innerHTML = ai.state === "missing"
       ? `<div class="ai-card"><h3>Install FastFlowLM</h3><p>Your ${esc(ai.npu || "Ryzen AI NPU")} can run Washi's assistant. It needs the free FastFlowLM engine from AMD's partner project.</p><button class="btn primary" id="aiGet">${icon("external")}Get FastFlowLM</button><p class="muted" style="margin-top:10px;font-size:12px">After installing, restart Washi.</p></div>`
-      : `<div class="ai-card"><h3>${ai.state === "pulling" ? "Downloading the model" : "Download the AI model"}</h3><p>Washi uses qwen3:4b (about 3 GB). It is downloaded once and stays on this PC.</p>
-        ${ai.state === "pulling" ? `<div class="progress"><i style="width:${ai.pull || 0}%"></i></div><p class="muted">${esc(ai.detail)}</p>` : `<button class="btn primary" id="aiPull">${icon("download")}Download qwen3:4b</button>`}</div>`;
+      : `<div class="ai-card"><h3>${ai.state === "pulling" ? "Downloading the model" : "Download the AI model"}</h3><p>Washi uses qwen3-it:4b (about 3 GB). It is downloaded once and stays on this PC.</p>
+        ${ai.state === "pulling" ? `<div class="progress"><i style="width:${ai.pull || 0}%"></i></div><p class="muted">${esc(ai.detail)}</p>` : `<button class="btn primary" id="aiPull">${icon("download")}Download qwen3-it:4b</button>`}</div>`;
     $("#aiGet") && ($("#aiGet").onclick = () => api("open_url", { url: ai.flm_url }));
     $("#aiPull") && ($("#aiPull").onclick = () => api("ai/pull", {}).then((r) => { S.ai = r; refreshAI(); renderMsgs(); }).catch(fail));
     return;

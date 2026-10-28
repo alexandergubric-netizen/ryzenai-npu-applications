@@ -40,14 +40,14 @@ sys.path.insert(0, HERE)
 import safety  # noqa: E402
 
 APP = "Morph"
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 PUBLISHER = "Alexander Gubric"
 COPYRIGHT = "© 2026 Alexander Gubric"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Morph"
 TEST = os.environ.get("MORPH_SETUP_TEST")
 TOKEN = secrets.token_urlsafe(24)
 CREATE_NO_WINDOW = 0x08000000
-FLM_MODEL = "qwen3:4b"
+FLM_MODEL = "qwen3-it:4b"
 FLM_MODEL_GB = 3.1
 
 log_lines = []

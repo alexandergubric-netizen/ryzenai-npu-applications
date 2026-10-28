@@ -59,11 +59,15 @@ export default {
       $('#aiBox').innerHTML = ai.available
         ? `<div class="item"><div class="t"><b>AI assistant (${ASSISTANT})</b><small>${esc(ai.engineName)}. Runs only on this PC; starts when you open the assistant and sleeps when idle.</small></div>${toggleHTML('gAi', ai.enabled)}</div>
            <div class="item"><div class="t"><b>AI model</b><small id="mHint">Models installed in ${ai.engine === 'flm' ? 'FastFlowLM' : 'Foundry Local'} on this PC</small></div>
-             <select id="gModel" class="sel" disabled><option>${esc(ai.model)}</option></select></div>`
+             <select id="gModel" class="sel" disabled><option>${esc(ai.model)}</option></select></div>
+           ${ai.engine === 'flm' ? `<div class="item"><div class="t"><b>NPU power mode</b><small>Performance and turbo answer fastest. A change restarts the AI engine (a few seconds).</small></div>
+             <select id="gPmode" class="sel">${['powersaver', 'balanced', 'performance', 'turbo'].map(m => `<option${m === (S.settings.aiPmode || 'performance') ? ' selected' : ''}>${m}</option>`).join('')}</select></div>` : ''}`
         : `<div class="item"><div class="t"><b>AI assistant</b><small>Not set up on this PC. It needs an AMD Ryzen AI 300/400/Max or an Intel Core Ultra processor with an NPU, chosen in the Postura installer. Everything else in Postura works without it.</small></div>${toggleHTML('gAi', false)}</div>`;
       const g = $('#gAi');
       g.disabled = !ai.available;
       g.addEventListener('change', () => setSettings({ aiEnabled: g.checked }));
+      const pm = $('#gPmode');
+      if (pm) pm.addEventListener('change', () => setSettings({ aiPmode: pm.value }));
       if (ai.available) loadModels(ai);
     });
 
@@ -83,7 +87,7 @@ export default {
         sel.onchange = async () => {
           try {
             await post('ai-model', { model: sel.value });
-            toast(`${ASSISTANT} now uses ${sel.value} — it loads with the next question`);
+            toast(ai.engine === 'flm' ? `${ASSISTANT} is switching to ${sel.value} (about 15–20 s, no restart)` : `${ASSISTANT} now uses ${sel.value} — it loads with the next question`);
             refresh();
           } catch (e) { toast(e.message); sel.value = r.current; }
         };

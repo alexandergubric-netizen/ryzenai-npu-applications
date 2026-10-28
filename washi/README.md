@@ -25,7 +25,7 @@ Everything is undoable (Ctrl+Z, 60 steps). `Ctrl+K` searches every command and h
 ## Local AI
 
 Runs only on PCs that can run [FastFlowLM](https://github.com/FastFlowLM/FastFlowLM): Windows 11, AMD Ryzen AI
-300/400 or Ryzen AI Max (XDNA 2 NPU), NPU driver 32.0.203.311+. Default model `qwen3:4b` (about 3 GB).
+300/400 or Ryzen AI Max (XDNA 2 NPU), NPU driver 32.0.203.311+. Default model `qwen3-it:4b` (about 3 GB).
 On other PCs the AI is switched off and hidden; everything else works the same. Documents never leave the PC.
 `WASHI_NO_AI=1` simulates an unsupported PC.
 
@@ -79,3 +79,14 @@ Crashes inside MuPDF are written to `%LOCALAPPDATA%\Washi\crash.log`; other erro
 - `installer/` - build script, installer UI and uninstaller
 
 © 2026 Alexander Gubric · MIT License · bundles PyMuPDF (AGPL-3.0)
+
+## The shared AI engine
+
+Washi, Morph, Sensei, Kaizen 5S and Postura share one FastFlowLM server on 127.0.0.1:52625
+(`core/flmshare.py`). Whichever app starts it uses the model's full 32k context (`--ctx-len 32768`, about 8.4 GB of RAM; it costs
+memory, not speed) and your NPU power mode (default **performance**; **turbo** is about as fast, balanced is about 40 %
+slower). Changing the model loads it in place in about 15–20 s, with no restart; changing the power mode restarts the
+server. If the server disappears, the app starts it again and retries the question. The server stops when the last
+app using it closes.
+
+Summaries read up to about 68,000 characters in one pass. The budget is sized from the server's real context, counting 2.2 characters per token, as measured for Slovak; English is 3.6. If a document is still too long, Washi reads it in parts.

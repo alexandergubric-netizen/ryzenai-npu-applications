@@ -183,6 +183,9 @@ def ask(question, history=(), deep=False, instant=True, model=None, use_router=T
     text = ""
     max_tokens = 2500 if deep else 450
     for kind, piece in npu.stream(messages, max_tokens=max_tokens, think=deep, model=model):
+        if kind == "status":          # e.g. the AI engine is being restarted
+            yield {"type": "status", "text": piece}
+            continue
         if kind == "think":
             if piece % 20 == 1:
                 yield {"type": "status", "text": f"Thinking… ({piece} tokens)" if deep else "Working on it…"}

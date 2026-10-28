@@ -508,6 +508,7 @@ async function runAI() {
     for await (const ev of stream("/api/advise", { id: F.d.id, q, history: a.history })) {
       if (ev.type === "wait") { retry = true; break; }
       if (ev.type === "error") throw new Error(ev.text);
+      if (ev.type === "status" && !got) { a.text = base + `_${ev.data}_`; renderAIText(F); }
       if (ev.type === "text") { got += ev.data; a.text = base + got; renderAIText(F); }
       if (ev.type === "best") {
         a.picks = ev.data || [];
@@ -651,6 +652,9 @@ async function openSettings() {
   const models = S.models.length ? S.models : [s.model];
   sel.replaceChildren(...models.map((m) => h("option", { value: m, selected: m === s.model }, m)));
   sel.onchange = async () => { S.settings = await api("/api/settings", { model: sel.value }); toast(`Switching to ${sel.value}`); };
+  const pm = $("#pmode");
+  pm.replaceChildren(...["powersaver", "balanced", "performance", "turbo"].map((m) => h("option", { value: m, selected: m === s.pmode }, m)));
+  pm.onchange = async () => { S.settings = await api("/api/settings", { pmode: pm.value }); toast(`NPU power mode: ${pm.value}`); };
   const e = S.engines;
   const rows = [["ffmpeg", "ffmpeg — audio & video"], ["pandoc", "pandoc — documents"], ["pymupdf", "PyMuPDF — PDF & e-books"],
     ["edge", "Microsoft Edge — HTML → PDF"], ["heif", "HEIC/HEIF pictures"], ["raw", "Camera RAW"], ["libreoffice", "LibreOffice — exact Office layouts, DOC/PPT/XLS"], ["7zip", "7-Zip — RAR archives"]];

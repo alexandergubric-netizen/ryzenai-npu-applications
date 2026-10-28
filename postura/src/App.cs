@@ -176,6 +176,7 @@ namespace Postura
             if (changed.Contains("autostart")) Setup.SetAutostart(Store.Bool("autostart"));
             if (changed.Contains("eyeInterval") || changed.Contains("eyeEnabled")) Reminder.Restart();
             if (changed.Contains("aiEnabled") && !Store.Bool("aiEnabled")) { Ai.Stop(); Ai.State = "off"; }   // free the NPU now
+            if (changed.Contains("aiPmode")) Ai.ApplyPmode();     // restarts FastFlowLM unless another app uses it
         }
 
         static string Clock(int secs)

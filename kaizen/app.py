@@ -26,7 +26,7 @@ from core.websec import Gate  # noqa: E402
 
 PORT = int(os.environ.get("KAIZEN_PORT", "47555"))
 WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 # the window gets a session cookie through a one-time launch key; the page itself holds no secret
 gate = Gate("Kaizen", db.DATA_DIR, "X-Kaizen", PORT)
 # the log stays small: 1 MB, plus two older files
@@ -525,8 +525,10 @@ class Handler(BaseHTTPRequestHandler):
             if url.path == "/api/settings":
                 before = db.get_settings()
                 after = db.save_settings(body)
-                if any(before[k] != after[k] for k in ("model", "pmode", "flm_port", "engine", "lms_port", "lms_model")):
-                    threading.Thread(target=ai.npu.restart, daemon=True).start()
+                if any(before[k] != after[k] for k in ("pmode", "flm_port", "engine", "lms_port", "lms_model")):
+                    threading.Thread(target=ai.npu.restart, daemon=True).start()   # needs a server (re)start
+                elif before["model"] != after["model"]:
+                    ai.npu.request_switch()   # FastFlowLM swaps the model in place, no restart
                 return self._send(200, after)
             if url.path == "/api/folders/check":
                 return self._send(200, folders.check(body.get("path", ""), edition.get().get("org", "")))

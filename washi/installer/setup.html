@@ -181,7 +181,7 @@ show(0);
   const ai = info.ai;
   $("#aiCard").innerHTML = ai.supported
     ? `<label class="opt"><input type="checkbox" id="ai" ${ai.flm && ai.model ? "" : "checked"}><div><b>Set up local AI on your ${esc(ai.npu || "NPU")}</b>
-        <small>${ai.flm && ai.model ? "FastFlowLM and the qwen3:4b model are already installed — nothing to download." : `${ai.flm ? "" : `Installs the free FastFlowLM engine ${esc(ai.flm_version || "")} (checked against its known fingerprint; Windows asks for permission; by installing it you accept <a href="#" data-url="${esc(ai.flm_license || "")}">its licence</a>) and `}downloads the qwen3:4b model (about 3.1 GB). You can also do this later from inside Washi.`}</small></div></label>`
+        <small>${ai.flm && ai.model ? "FastFlowLM and the qwen3-it:4b model are already installed — nothing to download." : `${ai.flm ? "" : `Installs the free FastFlowLM engine ${esc(ai.flm_version || "")} (checked against its known fingerprint; Windows asks for permission; by installing it you accept <a href="#" data-url="${esc(ai.flm_license || "")}">its licence</a>) and `}downloads the qwen3-it:4b model (about 3.1 GB). You can also do this later from inside Washi.`}</small></div></label>`
     : `<b>Local AI</b><div style="color:var(--ink-2);font-size:13px;margin-top:3px">${esc(ai.reason)}. Washi works fully; the AI assistant stays switched off on this PC.</div>`;
 })();
 
