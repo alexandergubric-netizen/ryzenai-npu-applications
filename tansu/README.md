@@ -10,7 +10,7 @@ organised. The "smart" part runs locally on the Ryzen AI NPU: **Qwen3.5 via Fast
 ## Install
 
 Download **Tansu-Setup.exe** (about 14 MB) from the
-[releases page](../../releases?q=tansu) and run it. It installs per user (no administrator rights), brings its own
+[Tansu 0.9.0 release](https://github.com/alexandergubric-netizen/ryzenai-npu-applications/releases/tag/tansu-v0.9.0) and run it. It installs per user (no administrator rights), brings its own
 Python and archive engines, and checks your PC first:
 
 - **Any Windows 10/11 PC:** archiving, verification, the library, search, extraction and the checkup all work.
