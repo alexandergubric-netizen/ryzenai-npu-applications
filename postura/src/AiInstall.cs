@@ -74,7 +74,7 @@ namespace Postura
                 if (engine != "" && NoEngineInstall && !(bool)hw["installed"])
                     throw new AiFailed("The AI engine isn't installed, and --ai-no-engine skips installing it.");
                 bool have = installed.Contains(model);
-                double gb = engine == "flm" ? Hardware.FlmModelGb : Hardware.FoundryModelGb;
+                double gb = engine == "flm" ? Hardware.FlmModelGb + Hardware.FlmModel2Gb : Hardware.FoundryModelGb;
                 if (engine != "" && !have && Hardware.FreeGb(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)) < gb + 1)
                     throw new AiFailed("Not enough free disk space to download the AI model (needs about " + Math.Ceiling(gb + 1) + " GB).");
                 if (engine == "flm") InstallFlm(hw, have);
@@ -124,14 +124,20 @@ namespace Postura
                 s.State = "done"; s.Detail = Test ? "Test mode" : "Installed";
             }
             if (haveModel) { var u = Add("model", "Using the AI model you already have"); u.State = "done"; return; }
-            var m = Add("model", "Downloading the AI model (Qwen3 4B, about " + Hardware.FlmModelGb + " GB)");
-            if (Test) { Simulate(m); m.State = "done"; m.Detail = "Test mode"; return; }
-            string exe = Hardware.FlmExe();
-            if (exe == null) throw new AiFailed("FastFlowLM was not found after installing it. Restart Windows and run Postura setup again.");
-            RunWithProgress(exe, "pull " + Hardware.FlmModel, m, Hardware.FlmModelGb,
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"flm\models"));
-            if (!Hardware.FlmHasModel(exe)) throw new AiFailed("The model did not finish downloading. Run Postura setup again to retry.");
-            m.State = "done"; m.Pct = 100; m.Detail = "Ready on the NPU";
+            // the default model and the faster one to switch to in Settings
+            var models = new[] { Tuple.Create(Hardware.FlmModel, Hardware.FlmModelGb), Tuple.Create(Hardware.FlmModel2, Hardware.FlmModel2Gb) };
+            foreach (var mm in models)
+            {
+                var m = Add(mm.Item1 == Hardware.FlmModel ? "model" : "model2", "Downloading the AI model " + mm.Item1 + " (about " + mm.Item2.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " GB)");
+                if (Test) { Simulate(m); m.State = "done"; m.Detail = "Test mode"; continue; }
+                string exe = Hardware.FlmExe();
+                if (exe == null) throw new AiFailed("FastFlowLM was not found after installing it. Restart Windows and run Postura setup again.");
+                if (Hardware.FlmModels(exe).Contains(mm.Item1)) { m.State = "done"; m.Detail = "Already downloaded"; continue; }
+                RunWithProgress(exe, "pull " + mm.Item1, m, mm.Item2,
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"flm\models"));
+                if (!Hardware.FlmModels(exe).Contains(mm.Item1)) throw new AiFailed("The model did not finish downloading. Run Postura setup again to retry.");
+                m.State = "done"; m.Pct = 100; m.Detail = "Ready on the NPU";
+            }
         }
 
         // ---------------------------------------------------------------- Intel: Foundry Local

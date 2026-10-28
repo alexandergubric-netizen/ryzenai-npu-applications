@@ -20,8 +20,8 @@ namespace Postura
     /// </summary>
     static class Hardware
     {
-        public const string FlmModel = "qwen3-it:4b";
-        public const double FlmModelGb = 2.6;
+        public const string FlmModel = "qwen3.5:4b", FlmModel2 = "qwen3.5:2b";   // the default, and the faster one
+        public const double FlmModelGb = 3.2, FlmModel2Gb = 1.9;
         // FastFlowLM's MSI is not code-signed, so the exact file is pinned (same pin as the Python apps' safety.py)
         public const string FlmVersion = "1.0.9";
         public const string FlmMsi = "https://github.com/ROCm/FastFlowLM/releases/download/v" + FlmVersion + "/flm-setup.msi";
@@ -269,10 +269,10 @@ namespace Postura
                 engineInstalled = flm != null;
                 if (deep && engineInstalled) models = Models("flm");
                 modelReady = models.Contains(FlmModel);
-                needGb = models.Count > 0 ? 0 : FlmModelGb + (engineInstalled ? 0 : 0.05);
+                needGb = models.Count > 0 ? 0 : FlmModelGb + FlmModel2Gb + (engineInstalled ? 0 : 0.05);
                 add("FastFlowLM", engineInstalled ? "installed" : "not installed", true, engineInstalled ? "" : "Will be downloaded and installed (Windows asks for permission)");
-                add("AI model", models.Count > 0 ? models.Count + " installed" : "Qwen3 4B Instruct", true,
-                    models.Count > 0 ? "Pick one below" : "About " + FlmModelGb.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " GB download");
+                add("AI model", models.Count > 0 ? models.Count + " installed" : "Qwen3.5 4B + 2B", true,
+                    models.Count > 0 ? "Pick one below" : "About " + (FlmModelGb + FlmModel2Gb).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " GB download (qwen3.5:4b and 2b)");
             }
             else if (engine == "foundry")
             {
@@ -298,7 +298,7 @@ namespace Postura
                 { "supported", supported }, { "reason", reason }, { "rows", rows },
                 { "installed", engineInstalled }, { "modelReady", modelReady }, { "downloadGb", Math.Round(needGb, 1) },
                 { "model", Recommended(engine) }, { "models", models.ToArray() },
-                { "recommendedGb", engine == "flm" ? FlmModelGb : FoundryModelGb }, { "cpu", cpu }, { "ram", ram }
+                { "recommendedGb", engine == "flm" ? FlmModelGb + FlmModel2Gb : FoundryModelGb }, { "cpu", cpu }, { "ram", ram }
             };
         }
     }

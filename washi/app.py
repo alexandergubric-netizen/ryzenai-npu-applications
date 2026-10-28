@@ -589,7 +589,7 @@ class Handler(BaseHTTPRequestHandler):
             npu.ensure()
             return self._json(ai_public())
         if name == "pull":
-            npu.pull(b.get("model") or llm.DEFAULT_MODEL)
+            npu.pull(b.get("model"))
             return self._json(ai_public())
         if not config.get()["ai"]:
             raise ValueError("Local AI is turned off in Settings")

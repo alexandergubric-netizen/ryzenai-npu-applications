@@ -29,7 +29,7 @@ and the app's settings API can't switch an engine on.
 
 | PC | Engine | Model | Requirements |
 |---|---|---|---|
-| AMD Ryzen AI 300/400/Max (XDNA 2 NPU) | FastFlowLM on the NPU | qwen3-it:4b (~2.6 GB) | NPU driver ≥ 32.0.203.311, Windows 11, 16 GB RAM, free space |
+| AMD Ryzen AI 300/400/Max (XDNA 2 NPU) | FastFlowLM on the NPU | qwen3.5:4b, plus the faster qwen3.5:2b (~5.1 GB together) | NPU driver ≥ 32.0.203.311, Windows 11, 16 GB RAM, free space |
 | Intel Core Ultra with an NPU (e.g. 225U) | Microsoft Foundry Local (OpenVINO: NPU on Core Ultra 200, otherwise Intel graphics) | qwen2.5-1.5b (~1.6 GB, small for modest NPUs) | Windows 11, 16 GB RAM, winget, free space |
 | anything else | — | — | Postura installs without the assistant |
 

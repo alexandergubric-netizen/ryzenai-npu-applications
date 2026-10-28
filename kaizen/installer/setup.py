@@ -57,7 +57,8 @@ CREATE_NO_WINDOW = 0x08000000
 
 # FastFlowLM itself is pinned and verified in safety.py; LM Studio must carry its publisher's signature
 LMS_SIGNER = "O=Element Labs Inc."
-FLM_MODEL = "qwen3-it:4b"
+FLM_MODELS = [("qwen3.5:4b", 3.2), ("qwen3.5:2b", 1.9)]   # the default, and a faster one to switch to
+FLM_MODEL = FLM_MODELS[0][0]
 FLM_MIN_DRIVER = (32, 0, 203, 311)
 LMS_MODELS = ["qwen/qwen3-4b-2507", "qwen/qwen3-4b"]
 NPU_CLASS = r"SYSTEM\CurrentControlSet\Control\Class\{f01a9d53-3ff6-48d2-9f97-c8a7004be10c}"
@@ -259,12 +260,12 @@ def system_check():
             "available": flm_ready,
             "installed": bool(flm),
             "version": flm_version() if flm else "",
-            "model_ready": FLM_MODEL in models,
+            "model_ready": all(m in models for m, _ in FLM_MODELS),
             "driver_ok": driver_ok,
             "reason": "" if flm_ready else (
                 "Needs Windows 11" if not win11 else
                 "Needs an AMD Ryzen AI 300/400 or Ryzen AI Max processor with an XDNA 2 NPU"),
-            "download_gb": (0 if flm else 0.033) + (0 if FLM_MODEL in models else 3.1),
+            "download_gb": (0 if flm else 0.033) + sum(gb for m, gb in FLM_MODELS if m not in models),
             "pinned": safety.FLM_VERSION,
         },
         "lmstudio": {  # a leftover lms.exe without the app doesn't count: the CLI needs the app installed
@@ -461,33 +462,34 @@ def install_flm():
                     raise RuntimeError(f"FastFlowLM's installer stopped (code {rc}). You can install it later from "
                                        "github.com/FastFlowLM/FastFlowLM.")
         s["state"], s["detail"] = "done", "Installed" if not TEST else "Test mode"
-    s = job.step("model", f"Downloading the AI model {FLM_MODEL} (about 3.1 GB)")
-    if FLM_MODEL in flm_models() and not TEST:
-        s["state"], s["detail"] = "done", "Already downloaded"
-        return
-    if TEST:
-        download("", "", s)
-        s["state"], s["detail"] = "done", "Test mode"
-        return
-    exe = flm_exe()
-    if not exe:
-        raise RuntimeError("FastFlowLM was not found after installing it. Restart Windows and run setup again.")
-    folder = os.path.join(documents(), "flm", "models")
-    before = dir_size(folder) if os.path.isdir(folder) else 0
-    proc = subprocess.Popen([exe, "pull", FLM_MODEL], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                            creationflags=CREATE_NO_WINDOW)
-    expected = 3.1 * 2 ** 30
-    while proc.poll() is None:
-        if job.cancelled:
-            proc.terminate()
-            raise RuntimeError("Cancelled")
-        got = (dir_size(folder) if os.path.isdir(folder) else 0) - before
-        s["pct"] = min(99, round(got * 100 / expected))
-        s["detail"] = f"{got / 2**30:.2f} of about 3.1 GB"
-        time.sleep(1)
-    if FLM_MODEL not in flm_models():
-        raise RuntimeError(f"The model did not finish downloading. Kaizen will retry, or run: flm pull {FLM_MODEL}")
-    s["state"], s["pct"], s["detail"] = "done", 100, "Ready on the NPU"
+    for model, gb in FLM_MODELS:
+        s = job.step("model" if model == FLM_MODEL else "model2", f"Downloading the AI model {model} (about {gb} GB)")
+        if model in flm_models() and not TEST:
+            s["state"], s["detail"] = "done", "Already downloaded"
+            continue
+        if TEST:
+            download("", "", s)
+            s["state"], s["detail"] = "done", "Test mode"
+            continue
+        exe = flm_exe()
+        if not exe:
+            raise RuntimeError("FastFlowLM was not found after installing it. Restart Windows and run setup again.")
+        folder = os.path.join(documents(), "flm", "models")
+        before = dir_size(folder) if os.path.isdir(folder) else 0
+        proc = subprocess.Popen([exe, "pull", model], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                creationflags=CREATE_NO_WINDOW)
+        expected = gb * 2 ** 30
+        while proc.poll() is None:
+            if job.cancelled:
+                proc.terminate()
+                raise RuntimeError("Cancelled")
+            got = (dir_size(folder) if os.path.isdir(folder) else 0) - before
+            s["pct"] = min(99, round(got * 100 / expected))
+            s["detail"] = f"{got / 2**30:.2f} of about {gb} GB"
+            time.sleep(1)
+        if model not in flm_models():
+            raise RuntimeError(f"The model did not finish downloading. Kaizen will retry, or run: flm pull {model}")
+        s["state"], s["pct"], s["detail"] = "done", 100, "Ready on the NPU"
 
 
 def install_lmstudio():

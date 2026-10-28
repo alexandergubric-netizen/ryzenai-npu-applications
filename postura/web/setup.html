@@ -134,7 +134,7 @@
   const oAi = $('oAi');
   // model picker: the chat models this engine already has (poka-yoke: the server re-checks the choice)
   const DL = '__download';
-  const recLabel = ai.engine === 'flm' ? 'Qwen3 4B Instruct' : 'Qwen 2.5 1.5B';
+  const recLabel = ai.engine === 'flm' ? 'Qwen3.5 4B + the faster 2B' : 'Qwen 2.5 1.5B';
   const sub = () => {
     const download = !ai.models.length || $('oModel').value === DL;
     $('aiSub').textContent = `${ai.engineName}. ` + (!download ? 'Uses a model already on this PC — nothing to download.'

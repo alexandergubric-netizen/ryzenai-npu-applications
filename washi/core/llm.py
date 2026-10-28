@@ -12,7 +12,8 @@ import urllib.request
 from . import config, flmshare, hw
 
 CREATE_NO_WINDOW = 0x08000000
-DEFAULT_MODEL = "qwen3-it:4b"
+DEFAULT_MODELS = [("qwen3.5:4b", 3.2), ("qwen3.5:2b", 1.9)]   # the default, and a faster one to switch to
+DEFAULT_MODEL = DEFAULT_MODELS[0][0]
 APP = "Washi"
 
 
@@ -49,17 +50,18 @@ class NPU:
         m = config.get()["model"]
         if not self.models or m in self.models:
             return m
-        for pref in (DEFAULT_MODEL, "qwen3:4b", "qwen3.5:4b", "qwen3:8b", "llama3.2:3b", "gemma3:4b"):
+        for pref in (*(m for m, _ in DEFAULT_MODELS), "qwen3-it:4b", "qwen3:4b", "qwen3:8b", "llama3.2:3b"):
             if pref in self.models:
                 return pref
         return self.models[0]
 
-    def pull(self, model=DEFAULT_MODEL):
-        """Download a model with `flm pull`, reporting progress from the growing model folder."""
+    def pull(self, model=None):
+        """Download the default models (or one model) with `flm pull`, reporting progress from the growing folder."""
         exe = self.flm_exe()
         if not exe or self.state == "pulling":
             return
-        self.state, self.detail, self.pull_pct = "pulling", f"Downloading {model} (about 3 GB)…", 0
+        todo = [(m, gb) for m, gb in DEFAULT_MODELS if m == model or model is None] or [(model, 3.2)]
+        self.state, self.detail, self.pull_pct = "pulling", f"Downloading {todo[0][0]}…", 0
 
         def size(folder):
             total = 0
@@ -74,18 +76,26 @@ class NPU:
         def run():
             from .winutil import documents
             folder = os.path.join(documents(), "flm", "models")
-            before = size(folder) if os.path.isdir(folder) else 0
-            proc = subprocess.Popen([exe, "pull", model], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                    creationflags=CREATE_NO_WINDOW)
-            while proc.poll() is None:
-                got = (size(folder) if os.path.isdir(folder) else 0) - before
-                self.pull_pct = min(99, round(got * 100 / (3.1 * 2 ** 30)))
-                self.detail = f"Downloading {model}: {got / 2**30:.2f} of about 3.1 GB"
-                time.sleep(1.5)
+            total = sum(gb for _, gb in todo)
+            done_gb = 0.0
+            for m, gb in todo:
+                if m in self.downloaded_models():
+                    done_gb += gb
+                    continue
+                before = size(folder) if os.path.isdir(folder) else 0
+                proc = subprocess.Popen([exe, "pull", m], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                        creationflags=CREATE_NO_WINDOW)
+                while proc.poll() is None:
+                    got = (size(folder) if os.path.isdir(folder) else 0) - before
+                    self.pull_pct = min(99, round((done_gb * 2 ** 30 + got) * 100 / (total * 2 ** 30)))
+                    self.detail = f"Downloading {m}: {got / 2**30:.2f} of about {gb} GB"
+                    time.sleep(1.5)
+                done_gb += gb
             self.models, self.models_at = self.downloaded_models(), time.time()
             self.pull_pct = None
-            if model in self.models:
-                config.update({"model": model})
+            first = todo[0][0]
+            if first in self.models:
+                config.update({"model": first})
                 self.state = "offline"
                 self.ensure()
             else:

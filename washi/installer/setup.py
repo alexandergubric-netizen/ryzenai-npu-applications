@@ -45,7 +45,8 @@ PROGID = "Washi.PDF"
 TEST = os.environ.get("WASHI_SETUP_TEST")
 TOKEN = secrets.token_urlsafe(24)
 CREATE_NO_WINDOW = 0x08000000
-FLM_MODEL = "qwen3-it:4b"
+FLM_MODELS = [("qwen3.5:4b", 3.2), ("qwen3.5:2b", 1.9)]   # the default, and a faster one to switch to
+FLM_MODEL = FLM_MODELS[0][0]
 
 log_lines = []
 
@@ -142,14 +143,14 @@ def system_check():
     add("Processor", h["cpu"] or "unknown", "ok" if arch in ("AMD64", "ARM64") else "bad",
         "Runs through Windows' x64 emulation" if arch == "ARM64" else "")
     add("Memory", f"{ram} GB", "ok" if ram >= 8 else "warn", "" if ram >= 8 else "Large PDFs may feel slow")
-    add("Free space", f"{free:.0f} GB", "ok" if free >= 4 else "warn" if free >= 0.4 else "bad",
-        "" if free >= 4 else "The AI model needs about 3 GB")
+    add("Free space", f"{free:.0f} GB", "ok" if free >= 6 else "warn" if free >= 0.4 else "bad",
+        "" if free >= 6 else "The AI models need about 5 GB")
     add("Microsoft Edge", "found" if edge() else "missing", "ok" if edge() else "warn",
         "" if edge() else "Washi will open in your default browser instead")
     add("AI chip (NPU)", h["npu"] or "none found", "ok" if h["supported"] else "info",
         "Local AI available" if h["supported"] else h["reason"] + " — Washi works fully, just without the AI assistant")
     return {"checks": checks, "ai": {"supported": h["supported"], "reason": h["reason"], "flm": h["flm"],
-                                      "model": FLM_MODEL in models, "npu": h["npu"], "flm_version": safety.FLM_VERSION,
+                                      "model": all(m in models for m, _ in FLM_MODELS), "npu": h["npu"], "flm_version": safety.FLM_VERSION,
                                       "flm_license": safety.FLM_LICENSE_URL},
             "can_install": build >= 17763 and arch in ("AMD64", "ARM64") and free >= 0.3, "existing": existing,
             "default_dir": existing or (os.path.join(TEST, APP) if TEST else os.path.expandvars(r"%LOCALAPPDATA%\Programs\Washi"))}
@@ -309,33 +310,34 @@ def install_ai():
                     raise RuntimeError(f"FastFlowLM's installer stopped (code {rc}). Washi works without it; you can "
                                        "install it later from github.com/FastFlowLM/FastFlowLM.")
         s["state"], s["detail"] = "done", "Installed" if not TEST else "Test mode"
-    s = job.step("model", f"Downloading the AI model {FLM_MODEL} (about 3.1 GB)")
-    if TEST:
-        download("", "", s)
-        s["state"], s["detail"] = "done", "Test mode"
-        return
-    if FLM_MODEL in flm_models():
-        s["state"], s["detail"] = "done", "Already downloaded"
-        return
-    exe = hw.flm_exe()
-    if not exe:
-        raise RuntimeError("FastFlowLM was not found after installing it. Restart Windows; Washi will offer the model download.")
-    folder = os.path.join(documents(), "flm", "models")
-    before = dir_size(folder) if os.path.isdir(folder) else 0
-    proc = subprocess.Popen([exe, "pull", FLM_MODEL], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                            creationflags=CREATE_NO_WINDOW)
-    while proc.poll() is None:
-        if job.cancelled:
-            proc.terminate()
-            raise RuntimeError("Cancelled")
-        got = (dir_size(folder) if os.path.isdir(folder) else 0) - before
-        s["pct"] = min(99, round(got * 100 / (3.1 * 2 ** 30)))
-        s["detail"] = f"{got / 2**30:.2f} of about 3.1 GB"
-        time.sleep(1)
-    if FLM_MODEL not in flm_models():
-        s["state"], s["detail"] = "skipped", "Not finished — Washi will offer to download it from the AI panel"
-        return
-    s["state"], s["pct"], s["detail"] = "done", 100, "Ready on the NPU"
+    for model, gb in FLM_MODELS:
+        s = job.step("model" if model == FLM_MODEL else "model2", f"Downloading the AI model {model} (about {gb} GB)")
+        if TEST:
+            download("", "", s)
+            s["state"], s["detail"] = "done", "Test mode"
+            continue
+        if model in flm_models():
+            s["state"], s["detail"] = "done", "Already downloaded"
+            continue
+        exe = hw.flm_exe()
+        if not exe:
+            raise RuntimeError("FastFlowLM was not found after installing it. Restart Windows; Washi will offer the model download.")
+        folder = os.path.join(documents(), "flm", "models")
+        before = dir_size(folder) if os.path.isdir(folder) else 0
+        proc = subprocess.Popen([exe, "pull", model], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                creationflags=CREATE_NO_WINDOW)
+        while proc.poll() is None:
+            if job.cancelled:
+                proc.terminate()
+                raise RuntimeError("Cancelled")
+            got = (dir_size(folder) if os.path.isdir(folder) else 0) - before
+            s["pct"] = min(99, round(got * 100 / (gb * 2 ** 30)))
+            s["detail"] = f"{got / 2**30:.2f} of about {gb} GB"
+            time.sleep(1)
+        if model not in flm_models():
+            s["state"], s["detail"] = "skipped", "Not finished — Washi will offer to download it from the AI panel"
+            continue
+        s["state"], s["pct"], s["detail"] = "done", 100, "Ready on the NPU"
 
 
 # ======================================================================= web UI

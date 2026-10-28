@@ -40,7 +40,7 @@ stopped at any time.
 ## AI engines
 | Your PC | Engine | Model |
 |---|---|---|
-| AMD Ryzen AI 300/400 (XDNA 2 NPU), Windows 11, NPU driver 32.0.203.311 or newer | FastFlowLM | `qwen3-it:4b` on the NPU |
+| AMD Ryzen AI 300/400 (XDNA 2 NPU), Windows 11, NPU driver 32.0.203.311 or newer | FastFlowLM | `qwen3.5:4b` on the NPU (setup also downloads `qwen3.5:2b`, the faster one) |
 | Any other Windows PC (Intel, older AMD, NVIDIA, Snapdragon) | LM Studio | Qwen3 4B on the CPU/GPU |
 
 Kaizen still works without any AI. You get scans, the 5S scores, the map and all the actions, just without the

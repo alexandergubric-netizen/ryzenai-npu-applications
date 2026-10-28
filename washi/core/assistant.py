@@ -16,7 +16,7 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDE_FILE = os.path.join(HERE, "web", "guide.json")
 CHARS_PER_TOKEN = 3.6
 # How much document text fits is sized from the context the running FastFlowLM server really has (32k when one of
-# our apps started it): measured with qwen3-it:4b, English is 3.6 characters per token but Slovak only 2.3, so
+# our apps started it): measured with qwen3-it:4b (same Qwen tokenizer as qwen3.5), English is 3.6 characters per token but Slovak only 2.3, so
 # plan with 2.2. Longer prompts are slower per token, so parts and question excerpts are capped.
 SAFE_CHARS_PER_TOKEN = 2.2
 MAX_PART_CHARS = 45000         # ~12k tokens per part of a very long document

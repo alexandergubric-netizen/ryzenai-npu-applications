@@ -25,7 +25,7 @@ Everything is undoable (Ctrl+Z, 60 steps). `Ctrl+K` searches every command and h
 ## Local AI
 
 Runs only on PCs that can run [FastFlowLM](https://github.com/FastFlowLM/FastFlowLM): Windows 11, AMD Ryzen AI
-300/400 or Ryzen AI Max (XDNA 2 NPU), NPU driver 32.0.203.311+. Default model `qwen3-it:4b` (about 3 GB).
+300/400 or Ryzen AI Max (XDNA 2 NPU), NPU driver 32.0.203.311+. Default model `qwen3.5:4b`; setup also downloads `qwen3.5:2b` to switch to for faster answers (about 5 GB together).
 On other PCs the AI is switched off and hidden; everything else works the same. Documents never leave the PC.
 `WASHI_NO_AI=1` simulates an unsupported PC.
 

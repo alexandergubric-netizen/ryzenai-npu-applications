@@ -500,7 +500,7 @@ async function settingsDialog() {
   const s = S.settings, ai = S.ai;
   const aiHtml = ai.supported
     ? `<div class="fld"><label>Local AI</label><div class="checks"><label><input type="checkbox" name="ai" ${s.ai ? "checked" : ""}> Use the AI assistant on the NPU (${esc(ai.npu || "Ryzen AI")})</label></div>
-       ${ai.models && ai.models.length ? `<div class="fld" style="margin-top:8px"><label>Model</label><select name="model">${ai.models.map((m) => `<option${m === ai.model ? " selected" : ""}>${esc(m)}</option>`).join("")}</select><div class="note">qwen3-it:4b is the quick all-rounder. A new model is loaded in place in about 15–20 s, no restart needed.</div></div>` : ""}
+       ${ai.models && ai.models.length ? `<div class="fld" style="margin-top:8px"><label>Model</label><select name="model">${ai.models.map((m) => `<option${m === ai.model ? " selected" : ""}>${esc(m)}</option>`).join("")}</select><div class="note">qwen3.5:4b answers best, qwen3.5:2b fastest. A new model is loaded in place in about 15–20 s, no restart needed.</div></div>` : ""}
        <div class="fld"><label>NPU power mode</label><select name="pmode">${["powersaver", "balanced", "performance", "turbo"].map((m) => `<option${m === s.pmode ? " selected" : ""}>${m}</option>`).join("")}</select><div class="note">Performance and turbo answer fastest. A change restarts the AI engine (a few seconds).</div></div></div>`
     : `<div class="fld"><label>Local AI</label><p class="muted" style="margin:0">Not available on this PC — ${esc(ai.reason || "no compatible NPU")}. Everything else in Washi works normally.</p></div>`;
   const r = await modal({ title: "Settings", icon: "settings", wide: true,
@@ -645,7 +645,7 @@ function renderHomeAI() {
   const msg = !S.settings.ai ? ["Local AI is turned off", "Turn it on in Settings to summarise documents and ask questions."]
     : ai.state === "online" ? ["Washi AI is ready on your NPU", `${ai.model} runs privately on ${ai.npu || "the Ryzen AI NPU"} — open a PDF and press Summarise, or ask how to do anything.`]
     : ai.state === "missing" ? ["Add local AI to Washi", "This PC has a Ryzen AI NPU. Install the free FastFlowLM engine to summarise documents on it."]
-    : ai.state === "nomodel" ? ["Download the AI model", "FastFlowLM is installed. Washi needs the qwen3-it:4b model (about 3 GB) once."]
+    : ai.state === "nomodel" ? ["Download the AI model", "FastFlowLM is installed. Washi needs the qwen3.5:4b and qwen3.5:2b models (about 5 GB) once."]
     : ["Washi AI is warming up", ai.detail || "Loading the model onto the NPU…"];
   box.innerHTML = `${icon("sparkle")}<div><b>${esc(msg[0])}</b><span class="muted">${esc(msg[1])}</span></div>` +
     (ai.state === "online" && S.settings.ai ? `<button class="btn sm" data-cmd="ai.guide">${icon("help")}Ask the guide</button>` : ai.state === "missing" ? `<button class="btn sm primary" id="getFlm">Get FastFlowLM</button>` : ai.state === "nomodel" ? `<button class="btn sm primary" id="pullModel">Download model</button>` : "");

@@ -16,7 +16,8 @@ import urllib.request
 from . import config, hw
 
 CREATE_NO_WINDOW = 0x08000000
-MODEL_GB = 3.1   # qwen3-it:4b
+DEFAULT_MODELS = [("qwen3.5:4b", 3.2), ("qwen3.5:2b", 1.9)]   # the default, and a faster one to switch to
+MODEL_GB = 5.1   # both together
 state = {"task": None, "label": "", "pct": None, "detail": "", "error": ""}
 _lock = threading.Lock()
 
@@ -39,7 +40,7 @@ def status():
     have = models() if h["flm"] else []
     model = config.get()["model"]
     if have and model not in have:   # the chosen model was removed: use the default, or any downloaded chat model
-        model = "qwen3-it:4b" if "qwen3-it:4b" in have else have[0]
+        model = next((x for x, _ in DEFAULT_MODELS if x in have), have[0])
         config.update({"model": model})
     ready = h["supported"] and h["flm"] and model in have
     return {**h, "models": have, "model": model, "has_model": model in have, "ready": ready,
@@ -117,17 +118,21 @@ def pull_model():
             exe = hw.flm_exe()
             if not exe:
                 raise RuntimeError("Install FastFlowLM first")
-            model = config.get()["model"]
-            _set(task="model", label=f"Downloading the AI model {model}", pct=0, detail="", error="")
+            chosen = config.get()["model"]
+            todo = DEFAULT_MODELS if chosen in dict(DEFAULT_MODELS) else [(chosen, MODEL_GB)]
             folder = os.path.join(_documents(), "flm", "models")
-            before = _dir_size(folder) if os.path.isdir(folder) else 0
-            proc = subprocess.Popen([exe, "pull", model], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                    creationflags=CREATE_NO_WINDOW)
-            while proc.poll() is None:
-                got = (_dir_size(folder) if os.path.isdir(folder) else 0) - before
-                _set(pct=min(99, round(got * 100 / (MODEL_GB * 2 ** 30))), detail=f"{got / 2**30:.2f} of about {MODEL_GB} GB")
-                time.sleep(1)
-            if model not in models():
+            for model, gb in todo:
+                if model in models():
+                    continue
+                _set(task="model", label=f"Downloading the AI model {model}", pct=0, detail="", error="")
+                before = _dir_size(folder) if os.path.isdir(folder) else 0
+                proc = subprocess.Popen([exe, "pull", model], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                        creationflags=CREATE_NO_WINDOW)
+                while proc.poll() is None:
+                    got = (_dir_size(folder) if os.path.isdir(folder) else 0) - before
+                    _set(pct=min(99, round(got * 100 / (gb * 2 ** 30))), detail=f"{got / 2**30:.2f} of about {gb} GB")
+                    time.sleep(1)
+            if chosen not in models():
                 raise RuntimeError("The download did not finish - check the internet connection and try again")
             _set(task=None, label="AI model ready", pct=100, detail="")
         except Exception as e:  # noqa: BLE001

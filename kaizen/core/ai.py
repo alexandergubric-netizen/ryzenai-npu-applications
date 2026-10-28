@@ -136,7 +136,7 @@ class Engine:
         s = db.get_settings()
         have = self.downloaded_models()
         if have and s["model"] not in have:   # the chosen model was removed: use the default or any downloaded one
-            s = db.save_settings({"model": "qwen3-it:4b" if "qwen3-it:4b" in have else have[0]})
+            s = db.save_settings({"model": next((m for m in ("qwen3.5:4b", "qwen3.5:2b") if m in have), have[0])})
         self.model = s["model"]
         if _ping(self.base):
             flmshare.join(APP)        # another app's server: FastFlowLM swaps models per request

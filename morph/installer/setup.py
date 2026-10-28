@@ -47,8 +47,8 @@ UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Morph"
 TEST = os.environ.get("MORPH_SETUP_TEST")
 TOKEN = secrets.token_urlsafe(24)
 CREATE_NO_WINDOW = 0x08000000
-FLM_MODEL = "qwen3-it:4b"
-FLM_MODEL_GB = 3.1
+FLM_MODELS = [("qwen3.5:4b", 3.2), ("qwen3.5:2b", 1.9)]   # the default, and a faster one to switch to
+FLM_MODEL, FLM_MODEL_GB = FLM_MODELS[0][0], 5.1
 
 log_lines = []
 
@@ -158,7 +158,7 @@ def system_check():
         "Runs through Windows' x64 emulation" if arch == "ARM64" else "")
     add("Memory", f"{ram} GB", "ok" if ram >= 8 else "warn", "" if ram >= 8 else "Big videos convert more slowly")
     add("Free space", f"{free:.0f} GB", "ok" if free >= 5 else "warn" if free >= 1 else "bad",
-        "" if free >= 5 else "Morph needs about 0.8 GB, the AI model about 3 GB more")
+        "" if free >= 5 else "Morph needs about 0.8 GB, the AI models about 5 GB more")
     add("Graphics", ", ".join(gpus) or "unknown", "ok" if gpu_accel else "info",
         "Fast GPU video encoding" if gpu_accel else "Videos are encoded on the processor")
     add("Microsoft Edge", "found" if edge() else "missing", "ok" if edge() else "warn",
@@ -171,8 +171,8 @@ def system_check():
         add("AI chip (NPU)", h["npu"] or "none supported", "info",
             h["reason"] + " — Morph installs as a converter (no AI advisor)")
     return {"checks": checks,
-            "ai": {"supported": h["supported"], "reason": h["reason"], "flm": h["flm"], "model": FLM_MODEL in models,
-                   "npu": h["npu"], "vendor": h["vendor"], "model_name": FLM_MODEL, "model_gb": FLM_MODEL_GB},
+            "ai": {"supported": h["supported"], "reason": h["reason"], "flm": h["flm"], "model": all(x in models for x, _ in FLM_MODELS),
+                   "npu": h["npu"], "vendor": h["vendor"], "model_name": " and ".join(x for x, _ in FLM_MODELS), "model_gb": FLM_MODEL_GB},
             "can_install": build >= 17763 and arch in ("AMD64", "ARM64") and free >= 1, "existing": existing,
             "default_dir": existing or (os.path.join(TEST, APP) if TEST else os.path.expandvars(r"%LOCALAPPDATA%\Programs\Morph"))}
 
@@ -327,34 +327,35 @@ def install_ai():
                                                           "converts everything; set up the AI later in Morph → Settings.")
                     return
         s["state"], s["detail"] = "done", "Installed" if not TEST else "Test mode"
-    s = job.step("model", f"Downloading the AI model {FLM_MODEL} (about {FLM_MODEL_GB} GB)")
-    if TEST:
-        download("", "", s)
-        s["state"], s["detail"] = "done", "Test mode"
-        return
-    if FLM_MODEL in flm_models():
-        s["state"], s["detail"] = "done", "Already downloaded"
-        return
-    exe = hw.flm_exe()
-    if not exe:
-        s["state"], s["detail"] = "skipped", "FastFlowLM needs a Windows restart first - then finish in Morph → Settings."
-        return
-    folder = os.path.join(documents(), "flm", "models")
-    before = dir_size(folder) if os.path.isdir(folder) else 0
-    proc = subprocess.Popen([exe, "pull", FLM_MODEL], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                            creationflags=CREATE_NO_WINDOW)
-    while proc.poll() is None:
-        if job.cancelled:
-            proc.terminate()
-            raise RuntimeError("Cancelled")
-        got = (dir_size(folder) if os.path.isdir(folder) else 0) - before
-        s["pct"] = min(99, round(got * 100 / (FLM_MODEL_GB * 2 ** 30)))
-        s["detail"] = f"{got / 2**30:.2f} of about {FLM_MODEL_GB} GB"
-        time.sleep(1)
-    if FLM_MODEL not in flm_models():
-        s["state"], s["detail"] = "skipped", "Not finished — Morph → Settings can download it later"
-        return
-    s["state"], s["pct"], s["detail"] = "done", 100, "Ready on the NPU"
+    for model, gb in FLM_MODELS:
+        s = job.step("model" if model == FLM_MODEL else "model2", f"Downloading the AI model {model} (about {gb} GB)")
+        if TEST:
+            download("", "", s)
+            s["state"], s["detail"] = "done", "Test mode"
+            continue
+        if model in flm_models():
+            s["state"], s["detail"] = "done", "Already downloaded"
+            continue
+        exe = hw.flm_exe()
+        if not exe:
+            s["state"], s["detail"] = "skipped", "FastFlowLM needs a Windows restart first - then finish in Morph → Settings."
+            return
+        folder = os.path.join(documents(), "flm", "models")
+        before = dir_size(folder) if os.path.isdir(folder) else 0
+        proc = subprocess.Popen([exe, "pull", model], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                creationflags=CREATE_NO_WINDOW)
+        while proc.poll() is None:
+            if job.cancelled:
+                proc.terminate()
+                raise RuntimeError("Cancelled")
+            got = (dir_size(folder) if os.path.isdir(folder) else 0) - before
+            s["pct"] = min(99, round(got * 100 / (gb * 2 ** 30)))
+            s["detail"] = f"{got / 2**30:.2f} of about {gb} GB"
+            time.sleep(1)
+        if model not in flm_models():
+            s["state"], s["detail"] = "skipped", "Not finished — Morph → Settings can download it later"
+            continue
+        s["state"], s["pct"], s["detail"] = "done", 100, "Ready on the NPU"
 
 
 # ======================================================================= web UI

@@ -12,8 +12,8 @@ Python, ffmpeg, pandoc and every library come inside. Morph installs per user, w
 `%LOCALAPPDATA%\Programs\Morph`, and removes cleanly from Settings → Apps.
 
 * **AMD Ryzen AI 300/400/Max (NPU):** setup explains that the AI advisor needs **FastFlowLM**, a free engine and a
-  separate program. It can install FastFlowLM (Windows asks for permission) and download the `qwen3-it:4b` model
-  (~3.1 GB). You can also skip this and turn it on later in **Morph → Settings → AI format advisor**, the NPU
+  separate program. It can install FastFlowLM (Windows asks for permission) and download the `qwen3.5:4b` and
+  `qwen3.5:2b` models (~5.1 GB; 4b is the default, 2b answers faster). You can also skip this and turn it on later in **Morph → Settings → AI format advisor**, the NPU
   enabler.
 * **Intel and every other PC:** Morph installs in **converter mode**. All conversions work, and the format
   suggestions come from built-in rules. The AI advisor and its follow-up questions are off. Video uses Intel Quick
@@ -69,7 +69,7 @@ styled HTML, then Edge printing. When a route loses something, the format's tool
 | Microsoft Edge (headless) | HTML → PDF |
 | pandas, openpyxl, pyarrow… | spreadsheets and data |
 | LibreOffice *(optional, install button in Settings)* | exact Office layouts, DOC/PPT/XLS |
-| FastFlowLM (`qwen3-it:4b` by default) | the AI advisor on the NPU |
+| FastFlowLM (`qwen3.5:4b` by default, `qwen3.5:2b` for speed) | the AI advisor on the NPU |
 
 ## The AI advisor
 
