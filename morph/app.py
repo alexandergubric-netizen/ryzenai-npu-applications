@@ -28,7 +28,7 @@ from core.jobs import jobs  # noqa: E402
 from core.llm import npu  # noqa: E402
 from core.websec import Gate  # noqa: E402
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 PORT = int(os.environ.get("MORPH_PORT") or 52691)   # MORPH_PORT: tests run a second copy elsewhere
 WEB = os.path.join(HERE, "web")
 # the window gets a session cookie through a one-time launch key; the page itself holds no secret
@@ -237,8 +237,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(out)
         if path == "/api/pickdir":
             p = winutil.pick_folder("Choose where converted files go")
-            if p:
-                config.update({"output_dir": os.path.normpath(p)})
+            if p:   # choosing a folder means "put my files there", so it replaces "next to the original"
+                config.update({"output_dir": os.path.normpath(p), "beside": False})
             return self._json(config.get())
         if path == "/api/remove":
             if body.get("id") not in inbox.items:   # only files Morph knows, never a made-up name

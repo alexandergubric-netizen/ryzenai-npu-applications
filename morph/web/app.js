@@ -757,7 +757,12 @@ function init() {
   $("#btnSettings").onclick = openSettings;
   $("#btnFormats").onclick = openFormats;
   $("#btnFolder").onclick = () => api("/api/reveal", { folder: true });
-  $("#btnOutDir").onclick = async () => { S.settings = await api("/api/pickdir"); $("#outDir").textContent = S.settings.output_dir; };
+  $("#btnOutDir").onclick = async () => {
+    const before = S.settings.output_dir;
+    S.settings = await api("/api/pickdir");
+    openSettings();   // redraw: "Save next to the original" is now off
+    if (S.settings.output_dir !== before || !S.settings.beside) toast(`Converted files now go to ${S.settings.output_dir}`);
+  };
   $("#scrim").onclick = closePanels;
   $$("[data-close]").forEach((b) => (b.onclick = closePanels));
   $("#fmtSearch").oninput = (e) => renderFormats(e.target.value);
