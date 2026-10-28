@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tansu Setup</title>
+<link rel="icon" href="/logo.png">
+<style>
+/* Tansu - paper & lacquer. The six drawer colours carry the setup too. */
+:root {
+  --bg: #f6f1e8; --panel: #efe7da; --surface: #fffcf7; --line: rgba(60,40,20,.09); --line2: rgba(60,40,20,.17);
+  --text: #231d16; --muted: #786d60; --faint: #a89d8f;
+  --k1: #ef5a3c; --k2: #f4a52b; --k3: #3fb27f; --k4: #4a90e2; --k5: #9a5bd1; --k6: #1fb5b0;
+  --frame: #6a4a33; --frame2: #4f3524; --brass: #e9c57c; --paper: #fffaf0;
+  --warm: linear-gradient(120deg, var(--k1), var(--k2));
+  --rainbow: linear-gradient(90deg, var(--k1), var(--k2), var(--k3), var(--k4), var(--k5), var(--k6));
+  --ok: #2fa66b; --warn: #e7962a; --err: #e0483a; --info: var(--k4);
+  --ease: cubic-bezier(.2, .8, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #12100d; --panel: #18150f; --surface: #1d1a15; --line: rgba(255,240,220,.07); --line2: rgba(255,240,220,.14);
+          --text: #f4ede2; --muted: #a99d8c; --faint: #6f6557; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { font: 14px/1.5 var(--font); color: var(--text); background: var(--bg); display: grid; grid-template-columns: 270px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; color: inherit; }
+@keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes drop { 0% { opacity: 0; transform: translateY(-36px) rotate(-6deg); } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+@keyframes sheet { 0% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(.9); } 25% { opacity: 1; }
+                   85% { opacity: 1; } 100% { opacity: 0; transform: translate(0, 6px) rotate(0) scale(.35); } }
+@keyframes stamp { 0% { opacity: 0; transform: scale(2.2) rotate(-14deg); } 60% { opacity: 1; transform: scale(.94) rotate(-8deg); } 100% { opacity: 1; transform: scale(1) rotate(-8deg); } }
+/* splash: paper sheets in the six drawer colours fly into the chest */
+.splash { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: radial-gradient(600px 420px at 50% 45%, var(--surface), var(--bg)); transition: opacity .6s var(--ease), visibility .6s; cursor: pointer; }
+.splash.out { opacity: 0; visibility: hidden; }
+.splash .chest { width: 132px; height: 132px; margin: 0 auto; position: relative; animation: drop .8s var(--spring) both; }
+.splash .chest img { width: 100%; height: 100%; filter: drop-shadow(0 18px 30px rgba(60,35,10,.28)); }
+.splash .sheet { position: absolute; left: 50%; top: 38%; width: 22px; height: 28px; margin-left: -11px; border-radius: 3px; background: var(--paper); border-top: 6px solid var(--c); box-shadow: 0 4px 10px rgba(60,35,10,.18); opacity: 0; animation: sheet 1.3s var(--ease) forwards; }
+.splash b { display: block; text-align: center; margin-top: 18px; font: 650 30px var(--display); letter-spacing: 8px; padding-left: 8px; opacity: 0; animation: up .6s var(--ease) .6s forwards; }
+.splash small { display: block; text-align: center; color: var(--muted); font-size: 13px; opacity: 0; animation: up .6s var(--ease) .8s forwards; }
+/* the side panel is the chest's wooden frame with brass corners */
+aside { background: linear-gradient(170deg, var(--frame), var(--frame2)); color: #f8efe0; padding: 30px 22px 22px; display: flex; flex-direction: column; position: relative; overflow: hidden; box-shadow: inset -6px 0 0 rgba(0,0,0,.12); }
+aside::before, aside::after { content: ""; position: absolute; width: 18px; height: 18px; border: 3px solid var(--brass); opacity: .85; }
+aside::before { top: 10px; left: 10px; border-right: 0; border-bottom: 0; border-radius: 4px 0 0 0; }
+aside::after { bottom: 10px; right: 14px; border-left: 0; border-top: 0; border-radius: 0 0 4px 0; }
+.brand { display: flex; align-items: center; gap: 13px; position: relative; }
+.brand img { width: 48px; height: 48px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
+.brand b { font: 650 21px var(--display); display: block; letter-spacing: .02em; }
+.brand span { font-size: 12px; color: rgba(248,239,224,.7); }
+.rainbow { height: 4px; border-radius: 4px; background: var(--rainbow); margin: 22px 0 0; opacity: .9; }
+.steps { list-style: none; padding: 0; margin: 26px 0 0; display: flex; flex-direction: column; gap: 6px; position: relative; }
+.steps li { display: flex; align-items: center; gap: 12px; padding: 8px 11px; border-radius: 10px; color: rgba(248,239,224,.65); transition: all .35s var(--ease); background: rgba(0,0,0,.12); border-left: 5px solid var(--c); }
+.steps li i { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 12.5px; background: color-mix(in srgb, var(--c) 30%, transparent); color: #fff; transition: all .35s var(--ease); }
+.steps li.on { color: #fff; background: rgba(255,255,255,.12); transform: translateX(6px); }
+.steps li.on i { background: var(--c); transform: scale(1.08); }
+.steps li.done i { background: color-mix(in srgb, var(--c) 70%, transparent); }
+.steps li .knob { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--brass); box-shadow: 0 0 0 2px rgba(0,0,0,.18); }
+.legal { margin-top: auto; font-size: 11.5px; line-height: 1.6; color: rgba(248,239,224,.6); position: relative; }
+.legal a { color: inherit; }
+main { position: relative; overflow: hidden; background: radial-gradient(700px 400px at 95% -10%, color-mix(in srgb, var(--k2) 12%, transparent), transparent); }
+.page { position: absolute; inset: 0; padding: 34px 44px 0; overflow-y: auto; opacity: 0; transform: translateX(30px); pointer-events: none; transition: opacity .45s var(--ease), transform .45s var(--ease); display: flex; flex-direction: column; }
+.page > * { flex-shrink: 0; }
+.page.on { opacity: 1; transform: none; pointer-events: auto; }
+h1 { font: 650 27px/1.15 var(--display); margin: 0 0 8px; letter-spacing: -.01em; }
+.lead { color: var(--muted); font-size: 14.5px; max-width: 590px; margin: 0 0 18px; }
+.beta { display: inline-block; font: 700 11px var(--font); letter-spacing: .08em; text-transform: uppercase; color: #fff; background: var(--k5); border-radius: 6px; padding: 2px 8px; vertical-align: middle; margin-left: 8px; }
+.foot { position: sticky; bottom: 0; margin: auto -44px 0; padding: 14px 44px; display: flex; justify-content: flex-end; gap: 10px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+.btn { height: 40px; padding: 0 20px; border-radius: 12px; border: 1px solid var(--line2); background: var(--surface); font-weight: 560; transition: all .25s var(--spring); display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--k2) 60%, transparent); }
+.btn.primary { background: var(--warm); color: #fff; border: 0; box-shadow: 0 8px 22px rgba(239,90,60,.3); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.feats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+.feats div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 12px 18px; position: relative; overflow: hidden; animation: up .5s var(--ease) both; animation-delay: calc(var(--n) * 70ms); }
+.feats div::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--c); }
+.feats b { display: block; margin-bottom: 2px; }
+.feats span { color: var(--muted); font-size: 12.5px; }
+.license { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font: 11.5px/1.5 Consolas, monospace; white-space: pre-wrap; max-height: 130px; overflow: auto; color: var(--muted); }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--line); animation: up .45s var(--ease) both; animation-delay: calc(var(--n) * 60ms); }
+.check .dot { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; flex: none; margin-top: 1px; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--err); } .dot.info { background: var(--info); }
+.check b { display: block; font-weight: 600; }
+.check span { color: var(--muted); font-size: 13px; word-break: break-all; }
+.check small { display: block; color: var(--faint); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+.glow { border-color: color-mix(in srgb, var(--k3) 55%, transparent); }
+.npu { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+.chipart { width: 74px; height: 74px; flex: none; border-radius: 16px; background: var(--frame); position: relative; display: grid; place-items: center; box-shadow: inset 0 0 0 3px var(--brass); }
+.chipart::before { content: "NPU"; font: 800 15px var(--display); color: var(--brass); letter-spacing: 1px; }
+.chipart i { position: absolute; width: 3px; height: 9px; background: var(--brass); border-radius: 2px; }
+.chipart.off { filter: grayscale(1); opacity: .55; }
+.chipart.on::after { content: ""; position: absolute; inset: -6px; border-radius: 20px; border: 2px solid var(--k3); opacity: 0; animation: ping 2s var(--ease) infinite; }
+@keyframes ping { 0% { opacity: .7; transform: scale(.92); } 100% { opacity: 0; transform: scale(1.18); } }
+.pre { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 13px; background: color-mix(in srgb, var(--k2) 10%, transparent); border: 1px solid color-mix(in srgb, var(--k2) 40%, transparent); margin-bottom: 14px; font-size: 13px; }
+.pre b { color: var(--warn); }
+.pre a { color: var(--text); }
+.status { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 14px; }
+.status span { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.status span.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.choice { display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border-radius: 14px; border: 1px solid var(--line2); background: var(--surface); cursor: pointer; margin-bottom: 9px; transition: all .25s var(--ease); }
+.choice.sel { border-color: var(--k1); background: color-mix(in srgb, var(--k1) 7%, var(--surface)); }
+.choice input { accent-color: var(--k1); width: 17px; height: 17px; margin-top: 2px; }
+.choice small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cols ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.cols li { padding: 4px 0 4px 24px; position: relative; font-size: 13px; color: var(--muted); }
+.cols li::before { position: absolute; left: 0; top: 4px; width: 17px; height: 17px; border-radius: 5px; display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
+.cols .yes li::before { content: "✓"; background: var(--ok); }
+.cols .no li::before { content: "–"; background: var(--faint); }
+label.opt { display: flex; gap: 11px; align-items: flex-start; padding: 7px 0; cursor: pointer; }
+label.opt input { width: 17px; height: 17px; accent-color: var(--k1); margin-top: 2px; }
+label.opt small { display: block; color: var(--muted); font-size: 12px; }
+.dir { display: flex; gap: 8px; margin-top: 6px; }
+.dir input { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--line2); padding: 0 11px; font: 13px var(--font); background: var(--bg); color: var(--text); outline: none; }
+.dir input:focus { border-color: var(--k4); }
+.prog { display: flex; flex-direction: column; gap: 10px; }
+.ps { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 12px 14px; animation: up .4s var(--ease) both; }
+.ps b { display: flex; gap: 10px; align-items: center; font-weight: 600; }
+.ps .st { width: 20px; height: 20px; border-radius: 6px; border: 2.5px solid var(--line2); flex: none; }
+.ps.active .st { border-color: var(--k2); border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+.ps.done .st { border-color: var(--ok); background: var(--ok); }
+.ps.failed .st { border-color: var(--err); background: var(--err); }
+.ps.skipped .st { border-color: var(--warn); background: var(--warn); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ps small { display: block; color: var(--muted); margin: 3px 0 0 30px; font-size: 12px; }
+.bar { height: 5px; border-radius: 5px; background: var(--line2); overflow: hidden; margin: 8px 0 0 30px; }
+.bar i { display: block; height: 100%; background: var(--rainbow); transition: width .4s; }
+.err { color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+/* done: the red hanko seal stamps the install, as it does every verified archive */
+.done-art { display: grid; place-items: center; margin: 4px 0 14px; }
+.hanko { width: 104px; height: 104px; border-radius: 16px; border: 5px solid var(--k1); color: var(--k1); display: grid; place-items: center; text-align: center; font: 800 15px/1.1 var(--display); letter-spacing: .12em; animation: stamp .55s var(--spring) both; background: color-mix(in srgb, var(--k1) 6%, transparent); }
+.hanko span { display: block; font-size: 30px; letter-spacing: 0; margin-bottom: 2px; }
+.test { position: fixed; top: 10px; right: 12px; background: var(--warn); color: #111; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; z-index: 5; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><div>
+  <div class="chest" id="chest"><img src="/logo.png" alt=""></div><b>Tansu</b><small>箪笥 · smart archive chest</small>
+</div></div>
+<aside>
+  <div class="brand"><img src="/logo.png" alt=""><div><b>Tansu</b><span id="ver">Smart archiver · setup</span></div></div>
+  <div class="rainbow"></div>
+  <ol class="steps">
+    <li data-s="0" style="--c:var(--k1)"><i>1</i><div>Welcome</div><span class="knob"></span></li>
+    <li data-s="1" style="--c:var(--k2)"><i>2</i><div>Your PC</div><span class="knob"></span></li>
+    <li data-s="2" style="--c:var(--k3)"><i>3</i><div>AI advisor</div><span class="knob"></span></li>
+    <li data-s="3" style="--c:var(--k4)"><i>4</i><div>Options</div><span class="knob"></span></li>
+    <li data-s="4" style="--c:var(--k5)"><i>5</i><div>Install</div><span class="knob"></span></li>
+  </ol>
+  <div class="legal" id="legal"></div>
+</aside>
+<main>
+  <section class="page" data-p="0">
+    <h1>Welcome to Tansu <span class="beta">beta</span></h1>
+    <p class="lead">A smart archive chest for your PC. Tansu packs files and folders into tidy, verified archives in <b>Documents\Archives</b> and keeps that library in order — all offline, nothing is uploaded.</p>
+    <div class="feats">
+      <div style="--c:var(--k1);--n:0"><b>Measures, then packs</b><span>Real compression ratios, dates, junk and private-looking names decide ZIP, 7z or TAR.XZ.</span></div>
+      <div style="--c:var(--k3);--n:1"><b>Verified every time</b><span>Each archive is re-read and its checksums tested before it gets its real name.</span></div>
+      <div style="--c:var(--k4);--n:2"><b>A library, not a pile</b><span>Folders, search inside every archive, notes on why each was made, duplicates found.</span></div>
+      <div style="--c:var(--k5);--n:3"><b>Private by default</b><span>Personal or financial files get 7z with AES-256 that also hides the file names.</span></div>
+    </div>
+    <div class="license" id="license"></div>
+    <div class="foot"><button class="btn primary" data-next>Agree and continue</button></div>
+  </section>
+  <section class="page" data-p="1">
+    <h1>Checking your PC</h1>
+    <p class="lead">Tansu brings its own Python and archive engines. Here is what it found.</p>
+    <div id="checks"><div class="check"><span>Checking…</span></div></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next id="toAI" disabled>Continue</button></div>
+  </section>
+  <section class="page" data-p="2">
+    <div id="aiPage"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" data-next>Continue</button></div>
+  </section>
+  <section class="page" data-p="3">
+    <h1>Options</h1>
+    <p class="lead">Tansu installs for your user account only — no administrator rights needed.</p>
+    <div class="card"><b>Install folder</b><div class="dir"><input id="dir" spellcheck="false"><button class="btn" id="browse">Browse…</button></div><small id="dir-note" style="color:var(--muted)"></small></div>
+    <div class="card">
+      <label class="opt"><input type="checkbox" id="desk" checked><div>Desktop shortcut</div></label>
+      <label class="opt"><input type="checkbox" id="menu" checked><div>Start menu shortcut</div></label>
+      <label class="opt"><input type="checkbox" id="sendto" checked><div>“Send to → Tansu” in Explorer<small>Right-click any files or folders to archive them. You can switch it off later in Tansu → Settings.</small></div></label>
+    </div>
+    <div class="card" id="summary"></div>
+    <div class="foot"><button class="btn ghost" data-back>Back</button><button class="btn primary" id="go">Install</button></div>
+  </section>
+  <section class="page" data-p="4">
+    <h1 id="instTitle">Installing…</h1>
+    <p class="lead" id="instLead">This takes a few seconds.</p>
+    <div class="done-art" id="doneArt" style="display:none"><div class="hanko"><span>✓</span>READY</div></div>
+    <div class="prog" id="prog"></div>
+    <div id="instErr"></div>
+    <div class="foot"><button class="btn ghost" id="close" style="display:none">Close</button><button class="btn primary" id="launch" style="display:none">Open Tansu</button></div>
+  </section>
+</main>
+<script>
+const TOKEN = "{{TOKEN}}";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const get = (p) => fetch(p, { headers: { "X-Setup": TOKEN } }).then((r) => r.json());
+const post = (p, b = {}) => fetch(p, { method: "POST", headers: { "X-Setup": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(b) }).then((r) => r.json());
+let page = 0, info = null, aiChoice = false;
+function show(n) {
+  page = n;
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("on", +p.dataset.p === n));
+  document.querySelectorAll(".steps li").forEach((l) => { l.classList.toggle("on", +l.dataset.s === n); l.classList.toggle("done", +l.dataset.s < n); });
+  if (n === 3) renderSummary();
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-next]")) show(page + 1);
+  if (e.target.closest("[data-back]")) show(page - 1);
+  const a = e.target.closest("a[data-url]");
+  if (a) { e.preventDefault(); post("/api/open", { url: a.dataset.url }); }
+});
+setInterval(() => post("/api/ping"), 3000);
+post("/api/ping");
+
+// splash: six sheets of paper, one per drawer colour, slip into the chest
+["--k1", "--k2", "--k3", "--k4", "--k5", "--k6"].forEach((c, i) => {
+  const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+  const el = document.createElement("span");
+  el.className = "sheet";
+  el.style.cssText = `--c:var(${c});--x:${Math.cos(a) * 140}px;--y:${Math.sin(a) * 100 - 40}px;--r:${(i % 2 ? 1 : -1) * (14 + i * 4)}deg;animation-delay:${300 + i * 110}ms`;
+  $("#chest").append(el);
+});
+const splash = $("#splash");
+const hide = () => splash.classList.add("out");
+splash.onclick = hide;
+setTimeout(hide, 2100);
+show(0);
+
+(async function load() {
+  info = await get("/api/info");
+  if (info.test) document.body.insertAdjacentHTML("beforeend", '<div class="test">TEST MODE</div>');
+  $("#ver").textContent = `Version ${info.version} beta · setup`;
+  $("#license").textContent = info.license;
+  $("#legal").innerHTML = `${esc(info.copyright)}<br>Free software · <a href="#" data-url="https://opensource.org/license/mit">MIT License</a><br>Bundles Python and py7zr — see the licence above`;
+  const mark = { ok: "✓", warn: "!", bad: "×", info: "i" };
+  $("#checks").innerHTML = info.checks.map((c, i) => `<div class="check" style="--n:${i}"><span class="dot ${c.status}">${mark[c.status]}</span><div><b>${esc(c.label)}</b><span>${esc(c.value)}</span>${c.note ? `<small>${esc(c.note)}</small>` : ""}</div></div>`).join("")
+    + (info.can_install ? "" : `<div class="err">Tansu can't be installed on this PC (see above).</div>`);
+  $("#toAI").disabled = !info.can_install;
+  $("#dir").value = info.default_dir;
+  dirNote();
+  renderAI();
+})();
+
+function renderAI() {
+  const ai = info.ai;
+  const pins = Array.from({ length: 6 }, (_, i) => `<i style="left:${14 + i * 9}px;top:-5px"></i><i style="left:${14 + i * 9}px;bottom:-5px"></i>`).join("");
+  if (!ai.supported) {
+    aiChoice = false;
+    $("#aiPage").innerHTML = `
+      <div class="npu"><div class="chipart off">${pins}</div><div><h1 style="margin:0">Rules mode on this PC</h1>
+        <div style="color:var(--muted)">${esc(ai.reason)}.</div></div></div>
+      <p class="lead">Tansu's archiving advisor runs on the NPU of AMD Ryzen AI processors through FastFlowLM. This PC doesn't have one, so Tansu plans every archive with its built-in rules — which already measure your files and pick the format, folder and name.</p>
+      <div class="cols">
+        <div class="card"><b>Works on this PC</b><ul class="yes"><li>ZIP, 7z (AES-256) and TAR.XZ, verified</li><li>Rule-based plans: format, folder, name, layout</li><li>Library, search inside archives, checkup</li><li>Extract, move, rename, Send to → Tansu</li></ul></div>
+        <div class="card"><b>Not available</b><ul class="no"><li>AI plans that explain themselves</li><li>Plain-words requests ("put it under Work")</li><li>AI folder suggestions in Care</li></ul>
+          <div style="font-size:12px;color:var(--faint);margin-top:10px">Needs an AMD Ryzen AI 300/400/Max processor, Windows 11 and FastFlowLM.</div></div>
+      </div>`;
+    return;
+  }
+  const ready = ai.flm && ai.model;
+  aiChoice = !ready;
+  $("#aiPage").innerHTML = `
+    <div class="npu"><div class="chipart on">${pins}</div><div><h1 style="margin:0">Your PC has a Ryzen AI NPU</h1>
+      <div style="color:var(--muted)">${esc(ai.npu || "AMD Ryzen AI NPU")} — Tansu can plan each archive with a local AI on it, fully offline.</div></div></div>
+    <div class="pre"><span>⚠</span><div><b>Prerequisite: FastFlowLM.</b> The AI advisor needs <a href="#" data-url="https://github.com/FastFlowLM/FastFlowLM">FastFlowLM</a> — a free engine that runs language models on the NPU. It is a separate program with its own installer (Windows asks for permission), plus the ${esc(ai.model_name)} models (about ${ai.model_gb} GB). Without it Tansu still archives everything with its rules.</div></div>
+    <div class="status"><span class="${ai.flm ? "ok" : ""}">${ai.flm ? "✓" : "○"} FastFlowLM ${ai.flm ? "installed" : "not installed"}</span><span class="${ai.model ? "ok" : ""}">${ai.model ? "✓" : "○"} Models ${esc(ai.model_name)} ${ai.model ? "downloaded" : "not downloaded"}</span></div>
+    ${ready ? `<div class="card glow"><b>✦ Everything is ready</b><div style="color:var(--muted);font-size:13px;margin-top:3px">FastFlowLM and the models are already installed — the AI advisor works right away, and shares the engine with your other Ryzen AI apps.</div></div>` : `
+    <label class="choice sel" data-c="1"><input type="radio" name="ai" checked><div><b>Enable the AI advisor now</b> <span style="color:var(--k3);font-size:12px">recommended</span>
+      <small>${ai.flm ? "" : "Installs FastFlowLM, then "}downloads ${esc(ai.model_name)} (about ${ai.model_gb} GB) after Tansu is installed.</small></div></label>
+    <label class="choice" data-c="0"><input type="radio" name="ai"><div><b>Later</b><small>Install Tansu only. It plans with its rules until FastFlowLM and a model are installed.</small></div></label>`}`;
+  document.querySelectorAll(".choice").forEach((c) => c.onclick = () => {
+    document.querySelectorAll(".choice").forEach((x) => x.classList.toggle("sel", x === c));
+    c.querySelector("input").checked = true;
+    aiChoice = c.dataset.c === "1";
+  });
+}
+function renderSummary() {
+  if (!info) return;
+  const ai = info.ai;
+  const line = !ai.supported ? `<b>Rules mode</b> — no AI advisor on this PC.`
+    : ai.flm && ai.model ? `<b>AI advisor</b> — ready on your NPU.`
+    : aiChoice ? `<b>AI advisor</b> — ${ai.flm ? "" : "FastFlowLM will be installed and "}the models downloaded after Tansu.`
+    : `<b>AI advisor</b> — later.`;
+  $("#summary").innerHTML = `<div style="font-size:13px;color:var(--muted)">${line}<br>Your archives go to <b>Documents\\Archives</b> (changeable in Settings). Uninstalling Tansu never touches them.</div>`;
+}
+
+$("#browse").onclick = async () => { const r = await post("/api/browse", { dir: $("#dir").value }); if (r.dir) $("#dir").value = r.dir; dirNote(); };
+// the app always gets a folder of its own, so uninstalling can't take anything else with it
+function dirNote() {
+  const v = $("#dir").value.trim().replace(/[\\/]+$/, ""), app = info.app;
+  const final = v.split(/[\\/]/).pop().toLowerCase() === app.toLowerCase() ? v : `${v}\\${app}`;
+  $("#dir-note").textContent = v ? `${app} goes into its own folder: ${final}` : "";
+}
+$("#dir").addEventListener("input", dirNote);
+$("#go").onclick = async () => {
+  show(4);
+  await post("/api/install", { dir: $("#dir").value, desktop: $("#desk").checked, startmenu: $("#menu").checked, sendto: $("#sendto").checked, ai: !!(info.ai.supported && aiChoice) });
+  poll();
+};
+async function poll() {
+  const p = await get("/api/progress");
+  $("#prog").innerHTML = p.steps.map((s) => `<div class="ps ${s.state}"><b><span class="st"></span>${esc(s.label)}</b>${s.detail ? `<small>${esc(s.detail)}</small>` : ""}${s.pct != null && s.state === "active" ? `<div class="bar"><i style="width:${s.pct}%"></i></div>` : ""}</div>`).join("");
+  if (p.running || (!p.done && !p.error)) return setTimeout(poll, 600);
+  if (p.error) {
+    $("#instTitle").textContent = "Something went wrong";
+    $("#instLead").textContent = "";
+    $("#instErr").innerHTML = `<div class="err">${esc(p.error)}</div>`;
+    $("#close").style.display = "";
+  } else {
+    $("#instTitle").textContent = "Tansu is ready";
+    $("#instLead").textContent = info.ai.supported ? "Find it on your desktop and in the Start menu. Drop files or folders on its window to archive them."
+      : "Find it on your desktop and in the Start menu. On this PC it plans archives with its built-in rules.";
+    $("#doneArt").style.display = "";
+    $("#launch").style.display = ""; $("#close").style.display = "";
+    document.querySelectorAll(".steps li").forEach((l) => l.classList.add("done"));
+  }
+}
+$("#launch").onclick = async () => { await post("/api/launch"); setTimeout(() => window.close(), 400); };
+$("#close").onclick = () => window.close();
+</script>
+</body>
+</html>

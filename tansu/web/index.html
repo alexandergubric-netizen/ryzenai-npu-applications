@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tansu</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="booting">
+
+<!-- opening animation: the chest builds itself, a sheet slips into the top drawer -->
+<div id="splash">
+  <div class="sp-glow"><i></i><i></i><i></i><i></i></div>
+  <div class="sp-center">
+    <div class="sp-logo" id="spLogo"></div>
+    <div class="sp-word" id="spWord"></div>
+    <div class="sp-sub"><span>箪笥</span> smart archive chest · AI on your NPU</div>
+  </div>
+  <div class="sp-skip">click to skip</div>
+</div>
+
+<div class="ambient"><i></i><i></i><i></i><i></i></div>
+
+<header id="hdr">
+  <div class="brand"><span class="brandlogo" id="brandLogo"></span><span class="bname">Tansu</span></div>
+  <nav class="tabs" id="tabs">
+    <button data-view="archive" class="on"><span class="tdot" style="--c:var(--k1)"></span>Archive</button>
+    <button data-view="library"><span class="tdot" style="--c:var(--k3)"></span>Library</button>
+    <button data-view="care"><span class="tdot" style="--c:var(--k2)"></span>Care<span class="badge" id="careBadge" hidden></span></button>
+    <span class="knob"></span>
+  </nav>
+  <div class="spacer"></div>
+  <div class="pill" id="aiPill" title="Archiving advisor running on the Ryzen AI NPU"><span class="dot" id="aiDot"></span><span id="aiText">AI off</span></div>
+  <button class="iconbtn" id="btnRoot" title="Open the Archives folder"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+  <button class="iconbtn" id="btnSettings" title="Settings"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
+</header>
+
+<!-- ------------------------------------------------------------ archive -->
+<main id="vArchive" class="view on">
+  <section class="hero" id="drop">
+    <div class="heroart" id="heroLogo"></div>
+    <div class="dtext">
+      <h1 id="dropTitle">What goes in the chest today?</h1>
+      <p id="dropText"></p>
+      <div class="actions">
+        <button class="btn primary" id="btnFiles"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add files</button>
+        <button class="btn" id="btnFolder"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Add a folder</button>
+      </div>
+      <div class="hint" id="dropHint">or drop them anywhere · or right-click in Explorer → <b>Send to → Tansu</b></div>
+    </div>
+    <div class="steps" id="steps">
+      <div style="--c:var(--k4)"><b>1</b>Tansu measures the files — real compression, dates, junk, private names</div>
+      <div style="--c:var(--k3)"><b>2</b>Qwen on your NPU picks the archive type and the drawer it belongs in</div>
+      <div style="--c:var(--k1)"><b>3</b>Packed, checksum-verified, filed in Documents\Archives</div>
+    </div>
+  </section>
+  <div id="batches"></div>
+</main>
+
+<!-- ------------------------------------------------------------ library -->
+<main id="vLibrary" class="view wide">
+  <div class="libgrid">
+    <aside class="side">
+      <div class="sidehead">Folders</div>
+      <div id="tree"></div>
+    </aside>
+    <section class="libmain">
+      <div class="stats" id="stats"></div>
+      <div class="searchbar">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="q" placeholder="Search inside every archive… (file name, type, year)">
+        <button class="iconbtn small" id="qClear" hidden><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="crumbs" id="crumbs"></div>
+      <div class="cabinet" id="cabinet"></div>
+      <div id="arcList"></div>
+    </section>
+  </div>
+</main>
+
+<!-- ------------------------------------------------------------ care -->
+<main id="vCare" class="view">
+  <section class="card carehead">
+    <div class="careart"><svg viewBox="0 0 24 24" class="i"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+    <div class="grow">
+      <h2>Library checkup</h2>
+      <p>Finds archives lying loose, files that are not archived, empty or near-duplicate folders, exact duplicate archives and anything not indexed. The deep checkup also re-reads every archive and tests its checksums.</p>
+    </div>
+    <div class="actions col">
+      <button class="btn primary" id="btnCheck">Run checkup</button>
+      <button class="btn ghost small" id="btnDeep">Deep checkup</button>
+    </div>
+  </section>
+  <div id="careJob"></div>
+  <div id="issues"></div>
+</main>
+
+<div class="overlay" id="overlay"><div class="ovart" id="ovLogo"></div><div class="ovtext">Drop into the chest</div></div>
+<div class="scrim" id="scrim"></div>
+<div class="tip" id="tip"></div>
+<div class="dock" id="dock"></div>
+<datalist id="folderList"></datalist>
+
+<aside class="drawer" id="detail"></aside>
+
+<aside class="drawer narrow" id="settings">
+  <div class="dh">Settings<div class="spacer"></div><button class="iconbtn" data-close><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="db">
+    <div class="sect"><h6>Library</h6>
+      <div class="row"><div class="grow"><div>Archives folder</div><div id="setRoot" class="path"></div></div><button class="btn small" id="btnPickRoot">Change</button></div>
+      <div class="row"><div class="grow"><div>Extract to</div><div id="setExtract" class="path"></div></div><button class="btn small" id="btnPickExtract">Change</button></div>
+      <div class="row"><div class="grow"><div>Date in archive names</div><div>“2026-10-17 Holiday photos.7z”</div></div><button class="toggle" data-set="date_prefix"></button></div>
+      <div class="row"><div class="grow"><div>Verify every new archive</div><div>Re-reads it and checks all checksums before it counts as done</div></div><button class="toggle" data-set="verify"></button></div>
+      <div class="row"><div class="grow"><div>Leave out junk</div><div>Thumbs.db, desktop.ini, ~$ lock files, node_modules, __pycache__…</div></div><button class="toggle" data-set="skip_junk"></button></div>
+    </div>
+    <div class="sect"><h6>AI advisor</h6>
+      <div class="row"><div class="grow"><div>Enable advisor</div><div>Runs locally on the Ryzen AI NPU (FastFlowLM)</div></div><button class="toggle" data-set="ai"></button></div>
+      <div class="row"><div class="grow"><div>Advise automatically</div><div>As soon as files are added</div></div><button class="toggle" data-set="auto_advise"></button></div>
+      <div class="row"><div class="grow"><div>Model</div><div id="aiSpeed"></div></div><select class="field" id="model"></select></div>
+    </div>
+    <div class="sect"><h6>Windows</h6>
+      <div class="row"><div class="grow"><div>“Send to → Tansu” in Explorer</div><div>Right-click any files or folders to archive them</div></div><button class="toggle" id="sendto"></button></div>
+      <div class="row"><div class="grow"><div>Opening animation</div><div>The chest building itself when Tansu starts</div></div><button class="toggle" id="splashToggle"></button></div>
+    </div>
+    <div class="sect"><h6>Engines</h6>
+      <div class="eng"><b style="--c:var(--f-zip)">ZIP</b> Python zipfile — deflate, stores photos/videos as-is</div>
+      <div class="eng"><b style="--c:var(--f-7z)">7z</b> py7zr — LZMA2 solid, AES-256 with hidden file names</div>
+      <div class="eng"><b style="--c:var(--f-tar)">TAR.XZ</b> Python tarfile + liblzma (PAX, Unicode-safe)</div>
+      <div class="eng"><b style="--c:var(--muted)">RAR…</b> read with Windows' built-in tar (libarchive)</div>
+    </div>
+    <div class="sect"><h6>About</h6>
+      <div class="row"><div class="grow"><div id="aboutVer">Tansu</div><div>© 2026 Alexander Gubric · MIT License · bundled open-source parts: THIRD-PARTY-NOTICES.txt</div></div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="app.js"></script>
+</body>
+</html>

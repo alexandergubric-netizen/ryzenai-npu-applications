@@ -4,6 +4,10 @@ Free Windows apps from one author, built around a private AI that runs **locally
 
 **Not every app needs a Ryzen AI PC.** The table below shows exactly what each app needs and what you get without an NPU.
 
+## 🧰 New: Tansu beta
+
+**Tansu** 箪笥 is a smart archive chest. Drop files or folders on it and it packs them into verified ZIP, 7z or TAR.XZ archives, files them in **Documents\Archives** and keeps that library tidy and searchable. On a Ryzen AI PC a local AI plans the format, folder and name of each archive and explains why; on any other PC its built-in rules do the same job. It is a beta: please report what you find.
+
 ## ⚡ October 2026: AI engine update
 
 The five AI apps now get more out of the NPU:
@@ -34,6 +38,7 @@ Install the new version over the old one — your settings stay. The apps also u
 | **Sensei** 先生 | 2.0.3 | Offline PowerShell helper. Describe a task in plain words; Sensei finds or writes the command, checks it and runs it when you say so. | 🟡 **AI for new tasks only.** Without an NPU it still answers from its built-in library of about 540 tested tasks. | [Sensei-Setup.exe](../../releases/tag/sensei-v2.0.3) |
 | **Kaizen 5S** | 1.0.2 | Tidies your PC with the Japanese 5S method: old files, duplicates, cluttered Downloads and Desktop. Ask the AI about your scan. | 🟡 **AI chat only.** Scans, scores and actions work without AI. The AI runs on the NPU (FastFlowLM) or on **LM Studio** (untested). | [Kaizen5S-Setup.exe](../../releases/tag/kaizen-v1.0.2) |
 | **Postura** | 1.0.5 | Your desk-side coach for a healthier workday. Adjust a virtual desk and chair to find your ideal setup, and get gentle reminders to rest your eyes and move. Built for offices and screen workers according to EU and Danish recommendations, and works fully offline. | 🟡 **Assistant only.** Everything else works on any Windows 11 PC. The optional assistant runs on the Ryzen AI NPU (or an Intel Core Ultra NPU, untested). | [Postura-Setup.exe](../../releases/tag/postura-v1.0.5) |
+| **Tansu** 箪笥 | 0.9.0 beta | Smart archiver: packs files and folders into verified ZIP, 7z (AES-256 with hidden names) or TAR.XZ archives in Documents\Archives, and keeps that library tidy, searchable and checked. The AI advisor plans format, folder and name for each archive. | 🟡 **AI advisor only.** Without an NPU, Tansu plans every archive with its built-in rules; archiving, the library and the checkup work the same. | [Tansu-Setup.exe](../../releases/tag/tansu-v0.9.0) |
 | **Tatami** 畳 | 1.0.0 | Fast disk space analyser in the spirit of WizTree, with a treemap, duplicate finder and insights. | ⚪ **No.** Contains no AI and runs on any Windows 10/11 PC. | [Tatami-Setup.exe](../../releases/tag/tatami-v1.0.0) |
 
 **Legend:** 🟡 works on any PC, with the AI part needing a Ryzen AI NPU · ⚪ no AI, works everywhere.
@@ -56,11 +61,11 @@ Get-FileHash .\Washi-Setup.exe -Algorithm SHA256
 
 ## Source code
 
-The complete source of every public app is in this repository, one folder per app (`washi`, `morph`, `sensei`, `kaizen`, `postura`, `tatami`), with its own README, build script and tests. Found a security problem? See [SECURITY.md](SECURITY.md).
+The complete source of every public app is in this repository, one folder per app (`washi`, `morph`, `sensei`, `kaizen`, `postura`, `tansu`, `tatami`), with its own README, build script and tests. Found a security problem? See [SECURITY.md](SECURITY.md).
 
 ## Licences
 
-The apps' own code is MIT licensed. © 2026 Alexander Gubric. **Washi** and **Morph** use PyMuPDF (AGPL-3.0), so as distributed they are covered by the AGPL-3.0; Morph also bundles FFmpeg (GPL-3.0) and pandoc (GPL-2.0+). Each app's folder and installer include the full licence texts and third-party notices.
+The apps' own code is MIT licensed. © 2026 Alexander Gubric. **Washi** and **Morph** use PyMuPDF (AGPL-3.0), so as distributed they are covered by the AGPL-3.0; Morph also bundles FFmpeg (GPL-3.0) and pandoc (GPL-2.0+). Tansu bundles py7zr (LGPL-2.1+). Each app's folder and installer include the full licence texts and third-party notices.
 
 ## Feedback
 

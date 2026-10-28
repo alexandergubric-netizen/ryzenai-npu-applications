@@ -1,0 +1,5 @@
+py7zr          # 7z with LZMA2 + AES-256 (pure Python, open source)
+send2trash     # originals and deleted archives go to the Recycle Bin, never a permanent delete
+pillow         # only for make_icon.py
+# also uses: Python's zipfile/tarfile/lzma (ZIP, TAR.XZ), Windows' built-in tar.exe (reading RAR etc.),
+# Microsoft Edge (app window) and FastFlowLM (the AI advisor on the Ryzen AI NPU)
