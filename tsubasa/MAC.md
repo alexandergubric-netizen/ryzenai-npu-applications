@@ -5,17 +5,21 @@ Apple's **MLX** through `mlx_lm.server`, mlx-lm's OpenAI-compatible server, on 1
 
 ## Verification status (read this first)
 
-The Mac code was written on a Windows PC. The author has no Mac at hand, so:
+The Mac code was written on a Windows PC. The author has no Mac at hand, so everything below comes from GitHub
+Actions on a hosted macOS arm64 runner (workflow "Tsubasa macOS (MLX)", first green run 2026-11-11), not from a
+person using the app.
 
 | What | Status |
 |---|---|
-| Engine interface (`core/client.py` → `core/mlx_client.py`): request shape, thinking switch, reasoning and usage parsing | Unit-tested on Windows against a fake OpenAI-style server. |
-| App bundle and DMG build (`mac/build_app.sh`) | Built by GitHub Actions on a macOS arm64 runner: see the workflow run linked in the release notes. |
-| Server start, launch gate, storage, Library index, path policy, zsh terminal and checker, process limits, document worker (`mac/smoke.py`) | Run by the same workflow with the bundle's own Python. The run's summary shows each check. |
-| A real MLX answer | The workflow tries one with a 0.6B model. Hosted runners are virtual machines, where MLX may have no GPU; the summary says whether it ran. |
-| The window (Chrome/Edge app window or the default browser), Finder launch, Gatekeeper prompt, file pickers | **Not verified.** These need a person at a real Mac. |
-| Speed, memory use, tool calling and "Think first" with real Qwen3 models on MLX | **Not verified.** |
-| Images, audio transcription, administrator commands, the 541 tested terminal tasks | **Not available on the Mac yet** (see below). |
+| App bundle and DMG build (`mac/build_app.sh`) | **Verified on the runner.** Python 3.12.16, mlx-lm 0.32.2, PyMuPDF 1.27.2.2; `Tsubasa.app` 515 MB, DMG 244 MB. |
+| `mac/smoke.py` with the bundle's own Python: imports, data folder, server start, launch gate, storage, Library index, Code mode endpoints, zsh checker (12 ratings), zsh session (output, folder change, exit code, Stop), path policy, process limits, document worker | **Verified on the runner:** 13 of 13 checks. |
+| The bundled app started headless and published its instance file | **Verified on the runner.** |
+| A real MLX answer through `mlx_lm.server` | **Verified on the runner with a 0.6B model** (`mlx-community/Qwen3-0.6B-4bit`): first text after 5.4 s including the model load, and no reasoning text with Think first off. |
+| Engine interface: request shape, thinking switch, reasoning and usage parsing | Unit-tested on Windows against a fake OpenAI-style server, plus the real answer above. |
+| The Windows test suite on macOS | Informational only. Most of it tests Windows pieces (PowerShell, job objects, Edge) and fails or errors there; it is not yet split by platform. |
+| The window (Chrome/Edge app window or the default browser), starting from Finder, the Gatekeeper prompt, the file pickers, the model download button | **Not verified.** These need a person at a real Mac. |
+| Speed, memory use, tool calling and "Think first" with the 4B and 8B models | **Not verified.** |
+| Images, audio transcription, pictures in chat, administrator commands, the 541 tested terminal tasks | **Not available on the Mac yet** (see below). |
 
 If something fails on your Mac, the logs are `~/Library/Application Support/Tsubasa/mlx-server.log` and
 `model-download.log`.
