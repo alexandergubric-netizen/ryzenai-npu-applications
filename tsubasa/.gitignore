@@ -1,0 +1,10 @@
+.venv/
+.guard/
+.test-runs/
+__pycache__/
+*.py[cod]
+instance.json
+*.log
+installer/build/
+mac/build/
+*.lnk

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tsubasa Setup</title>
+<link rel="icon" href="/logo.svg">
+<style>
+/* Tsubasa setup: warm charcoal and paper, the ember bird. Same look as the app. */
+:root { --bg:#1c1a17; --panel:#24211d; --line:#3a352e; --text:#efe9df; --muted:#a79f92; --ember:#e8804f; --amber:#f1b85a;
+        --sage:#8fbf8a; --sky:#7fb6d8; --coral:#e2686a; --ease:cubic-bezier(.22,1,.36,1); }
+* { box-sizing:border-box; }
+html,body { height:100%; margin:0; }
+body { background:var(--bg); color:var(--text); font:14.5px/1.5 "Segoe UI Variable","Segoe UI",system-ui,sans-serif; display:flex; overflow:hidden; }
+h1 { font:500 30px/1.15 "Georgia Pro",Georgia,"Sitka Text",serif; margin:0 0 10px; letter-spacing:-.01em; }
+p.lead { color:var(--muted); margin:0 0 18px; max-width:58ch; }
+aside { width:230px; background:var(--panel); border-right:1px solid var(--line); padding:26px 20px; display:flex; flex-direction:column; gap:26px; }
+.brand { display:flex; gap:12px; align-items:center; }
+.brand img { width:42px; height:42px; border-radius:11px; }
+.brand b { font:500 20px "Georgia Pro",Georgia,serif; display:block; }
+.brand span { color:var(--muted); font-size:12px; }
+ol.steps { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+ol.steps li { padding:8px 10px; border-radius:9px; color:var(--muted); display:flex; gap:10px; align-items:center; transition:background .2s,color .2s; }
+ol.steps li i { width:8px; height:8px; border-radius:50%; background:var(--line); transition:background .2s, transform .3s var(--ease); }
+ol.steps li.on { background:#2e2a25; color:var(--text); } ol.steps li.on i { background:var(--ember); transform:scale(1.3); }
+ol.steps li.past i { background:var(--sage); }
+aside small { margin-top:auto; color:var(--muted); font-size:11.5px; }
+main { flex:1; display:flex; flex-direction:column; min-width:0; }
+.pages { flex:1; overflow:auto; padding:34px 40px 10px; }
+.page { display:none; animation:rise .35s var(--ease) both; } .page.on { display:block; }
+@keyframes rise { from { opacity:0; transform:translateY(8px); } }
+.foot { display:flex; gap:10px; justify-content:flex-end; padding:14px 40px 20px; border-top:1px solid var(--line); }
+.btn { font:inherit; border:1px solid var(--line); background:#2e2a25; color:var(--text); padding:9px 18px; border-radius:10px; cursor:pointer; transition:transform .12s, background .15s; }
+.btn:active { transform:scale(.97); } .btn:disabled { opacity:.45; cursor:default; }
+.btn.primary { background:var(--ember); border-color:var(--ember); color:#201409; font-weight:600; }
+.btn.ghost { background:transparent; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:6px 0 18px; }
+.cards div { border:1px solid var(--line); border-radius:12px; padding:13px 14px; background:var(--panel); border-top:3px solid var(--c); }
+.cards b { display:block; margin-bottom:3px; } .cards span { color:var(--muted); font-size:13px; }
+table.checks { width:100%; border-collapse:collapse; } table.checks td { padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+table.checks td:first-child { width:26px; } table.checks small { color:var(--muted); display:block; }
+.dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-top:6px; background:var(--muted); }
+.dot.ok { background:var(--sage); } .dot.warn { background:var(--amber); } .dot.bad { background:var(--coral); } .dot.info { background:var(--sky); }
+.err { color:var(--coral); margin-top:12px; }
+label.opt, label.choice { display:flex; gap:11px; padding:10px 12px; border:1px solid var(--line); border-radius:11px; margin:8px 0; cursor:pointer; background:var(--panel); }
+label.choice:has(input:checked) { border-color:var(--ember); }
+label small { display:block; color:var(--muted); }
+input[type=text] { width:100%; font:inherit; background:#15130f; border:1px solid var(--line); color:var(--text); padding:9px 11px; border-radius:9px; }
+.row { display:flex; gap:8px; margin:6px 0 14px; }
+.note { border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:10px; padding:10px 13px; color:var(--muted); margin:10px 0; font-size:13.5px; }
+a { color:var(--amber); }
+.step { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+.step .state { width:18px; text-align:center; } .step small { color:var(--muted); display:block; }
+.bar { height:5px; background:var(--line); border-radius:3px; margin-top:6px; overflow:hidden; } .bar i { display:block; height:100%; background:var(--ember); transition:width .3s; }
+pre.lic { white-space:pre-wrap; background:#15130f; border:1px solid var(--line); border-radius:10px; padding:12px; max-height:210px; overflow:auto; font:12px/1.45 Consolas,monospace; color:var(--muted); }
+/* splash: the bird glides in and settles (what Tsubasa, "wings", is named after) */
+.splash { position:fixed; inset:0; background:var(--bg); display:grid; place-items:center; z-index:9; transition:opacity .45s; text-align:center; }
+.splash.gone { opacity:0; pointer-events:none; }
+.splash img { width:120px; height:120px; border-radius:28px; animation:glide 1s var(--ease) both; box-shadow:0 22px 50px rgba(232,128,79,.25); }
+.splash b { display:block; font:500 28px "Georgia Pro",Georgia,serif; margin-top:16px; animation:rise .6s .35s var(--ease) both; }
+.splash small { color:var(--muted); animation:rise .6s .5s var(--ease) both; display:block; }
+@keyframes glide { from { opacity:0; transform:translate(-90px,40px) rotate(-14deg) scale(.7); } 60% { transform:translate(6px,-6px) rotate(3deg) scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><div><img src="/logo.svg" alt=""><b>Tsubasa</b><small>翼 · your private AI assistant</small></div></div>
+<aside>
+  <div class="brand"><img src="/logo.svg" alt=""><div><b>Tsubasa</b><span id="ver">Setup</span></div></div>
+  <ol class="steps" id="steps"><li><i></i>Welcome</li><li><i></i>This PC</li><li><i></i>AI engine</li><li><i></i>Options</li><li><i></i>Install</li></ol>
+  <small id="copy"></small>
+</aside>
+<main>
+  <div class="pages">
+    <section class="page" data-page="0">
+      <h1>Welcome to Tsubasa</h1>
+      <p class="lead">A private AI assistant that runs on your own PC. Chat, documents, code and a terminal helper, all offline: nothing you type or attach leaves this computer.</p>
+      <div class="cards">
+        <div style="--c:var(--ember)"><b>Chat</b><span>Streaming answers, saved chats, workspaces, your own instructions.</span></div>
+        <div style="--c:var(--amber)"><b>Documents</b><span>Attach PDFs, Word, Excel, code or pictures and ask about them.</span></div>
+        <div style="--c:var(--sage)"><b>Code mode</b><span>541 tested PowerShell tasks and an agent that asks before every step.</span></div>
+        <div style="--c:var(--sky)"><b>Library</b><span>Your notes and folders as knowledge the assistant can cite.</span></div>
+      </div>
+      <pre class="lic" id="lic"></pre>
+    </section>
+    <section class="page" data-page="1"><h1>This PC</h1><p class="lead">Tsubasa brings its own Python. Here is what setup found.</p><table class="checks" id="checks"></table><div id="blocked"></div></section>
+    <section class="page" data-page="2"><h1>AI engine</h1><div id="ai"></div></section>
+    <section class="page" data-page="3">
+      <h1>Options</h1><p class="lead">Tsubasa installs for your user account only. No administrator rights are needed.</p>
+      <label>Install folder</label><div class="row"><input type="text" id="dir"><button class="btn" id="browse">Browse…</button></div>
+      <label class="opt"><input type="checkbox" id="desk" checked><div>Desktop shortcut</div></label>
+      <label class="opt"><input type="checkbox" id="menu" checked><div>Start menu entry</div></label>
+      <div class="note" id="summary"></div>
+    </section>
+    <section class="page" data-page="4"><h1 id="instTitle">Installing…</h1><p class="lead" id="instLead">This takes a moment. Model downloads can take several minutes.</p><div id="progress"></div><div class="err" id="instErr"></div></section>
+  </div>
+  <div class="foot">
+    <button class="btn ghost" id="back">Back</button><button class="btn primary" id="next">Next</button>
+    <button class="btn ghost" id="close" style="display:none">Close</button><button class="btn primary" id="launch" style="display:none">Open Tsubasa</button>
+  </div>
+</main>
+<script>
+const TOKEN = "{{TOKEN}}", $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const get = p => fetch(p, { headers: { "X-Setup": TOKEN } }).then(r => r.json());
+const post = (p, b = {}) => fetch(p, { method: "POST", headers: { "X-Setup": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(r => r.json());
+let info = null, page = 0, aiChoice = true, installing = false;
+setInterval(() => post("/api/ping").catch(() => {}), 3000); post("/api/ping");
+setTimeout(() => $("#splash").classList.add("gone"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1300);
+$("#splash").onclick = () => $("#splash").classList.add("gone");
+
+function show(n) {
+  page = n;
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", +p.dataset.page === n));
+  document.querySelectorAll("#steps li").forEach((li, i) => { li.classList.toggle("on", i === n); li.classList.toggle("past", i < n); });
+  $("#back").style.display = n > 0 && n < 4 ? "" : "none";
+  $("#next").style.display = n < 4 ? "" : "none";
+  $("#next").textContent = n === 3 ? "Install" : "Next";
+  $("#next").disabled = !info || (n >= 1 && !info.can_install);
+  if (n === 3) summary();
+}
+function summary() {
+  const ai = info.ai;
+  $("#summary").innerHTML = !ai.supported ? "Tsubasa will be installed without an AI engine. Chat stays offline on this PC."
+    : ai.flm && ai.model ? "FastFlowLM and the models are already here. Tsubasa starts the engine when you open it."
+    : aiChoice ? `After Tsubasa, setup ${ai.flm ? "" : "installs FastFlowLM and "}downloads ${esc(ai.model_name)} (about ${ai.model_gb} GB).`
+    : "Tsubasa only. Add the engine later: install FastFlowLM, then run <code>flm pull qwen3.5:4b</code>.";
+}
+function renderAi() {
+  const ai = info.ai;
+  if (!ai.supported) {
+    $("#ai").innerHTML = `<p class="lead">Tsubasa's assistant runs on the NPU of AMD Ryzen AI 300/400/Max processors through FastFlowLM. ${esc(ai.reason || "This PC does not have one")}.</p>
+      <div class="note">You can still install Tsubasa to look around: saved chats, the document tools and the tested command library open, but chat answers need the engine and stay offline here.</div>`;
+    return;
+  }
+  if (ai.flm && ai.model) { $("#ai").innerHTML = `<p class="lead">${esc(ai.npu || "Ryzen AI NPU")} with FastFlowLM and the models: everything is ready. Tsubasa also lists any other model you added with <code>flm pull</code>.</p>`; return; }
+  $("#ai").innerHTML = `<p class="lead">${esc(ai.npu || "AMD Ryzen AI NPU")}: the assistant can run here, fully offline.</p>
+    <div class="note"><b>Tsubasa needs FastFlowLM</b>, a free engine that runs language models on the NPU (<a href="#" data-url="https://github.com/FastFlowLM/FastFlowLM">project page</a>, <a href="#" data-url="${esc(info.flm_license || "")}">its licence</a>). Setup checks the download against its known fingerprint before running it.</div>
+    <label class="choice"><input type="radio" name="ai" value="1" checked><div><b>Set it up now</b><small>${ai.flm ? "Downloads" : "Installs FastFlowLM (Windows asks for permission once), then downloads"} ${esc(ai.model_name)}: about ${ai.model_gb} GB.</small></div></label>
+    <label class="choice"><input type="radio" name="ai" value="0"><div><b>Later</b><small>Install Tsubasa only. Chat stays offline until FastFlowLM and a model are installed.</small></div></label>`;
+  document.querySelectorAll("input[name=ai]").forEach(r => r.onchange = () => { aiChoice = r.value === "1" && r.checked || document.querySelector("input[name=ai]:checked").value === "1"; });
+  document.querySelectorAll("#ai a[data-url]").forEach(a => a.onclick = e => { e.preventDefault(); if (a.dataset.url) post("/api/open", { url: a.dataset.url }); });
+}
+async function load() {
+  info = await get("/api/info");
+  $("#ver").textContent = "Setup · version " + info.version; $("#copy").textContent = info.copyright; $("#lic").textContent = info.license;
+  $("#checks").innerHTML = info.checks.map(c => `<tr><td><span class="dot ${esc(c.status)}"></span></td><td><b>${esc(c.label)}</b><small>${esc(c.note)}</small></td><td>${esc(c.value)}</td></tr>`).join("");
+  $("#blocked").innerHTML = info.can_install ? "" : `<div class="err">Tsubasa can't be installed on this PC (see above).</div>`;
+  $("#dir").value = info.default_dir; renderAi(); show(page);
+}
+async function install() {
+  installing = true; show(4);
+  await post("/api/install", { dir: $("#dir").value, desktop: $("#desk").checked, startmenu: $("#menu").checked, ai: !!(info.ai.supported && aiChoice && !(info.ai.flm && info.ai.model)) });
+  const icons = { active: "…", done: "✓", failed: "✕", skipped: "–" };
+  const timer = setInterval(async () => {
+    const p = await get("/api/progress").catch(() => null); if (!p) return;
+    $("#progress").innerHTML = p.steps.map(s => `<div class="step"><div class="state">${icons[s.state] || ""}</div><div style="flex:1"><b>${esc(s.label)}</b><small>${esc(s.detail)}</small>${s.state === "active" && s.pct != null ? `<div class="bar"><i style="width:${+s.pct}%"></i></div>` : ""}</div></div>`).join("");
+    if (p.error) { clearInterval(timer); $("#instTitle").textContent = "Setup stopped"; $("#instErr").textContent = p.error; $("#close").style.display = ""; }
+    else if (p.done) { clearInterval(timer); $("#instTitle").textContent = "Tsubasa is ready"; $("#instLead").textContent = "Find it on your desktop and in the Start menu. The first answer after a start takes a little longer while the model loads."; $("#close").style.display = ""; $("#launch").style.display = ""; }
+  }, 600);
+}
+$("#next").onclick = () => page === 3 ? install() : show(page + 1);
+$("#back").onclick = () => show(page - 1);
+$("#browse").onclick = async () => { const r = await post("/api/browse", { dir: $("#dir").value }); if (r.dir) $("#dir").value = r.dir; };
+$("#close").onclick = () => window.close();
+$("#launch").onclick = async () => { await post("/api/launch"); window.close(); };
+show(0); load().catch(e => { $("#blocked").textContent = String(e); });
+</script>
+</body>
+</html>

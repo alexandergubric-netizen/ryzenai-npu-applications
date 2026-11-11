@@ -1,0 +1,85 @@
+# Builds and smoke-tests the experimental macOS (Apple silicon, MLX) version of Tsubasa.
+# This file lives at .github/workflows/tsubasa-mac.yml in the repository; tsubasa/mac/tsubasa-mac.yml is its source.
+name: Tsubasa macOS (MLX)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Attach the DMG to this existing release (for example tsubasa-v0.9.5). Empty: artifact only."
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    paths: ["tsubasa/**", ".github/workflows/tsubasa-mac.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14          # Apple silicon (arm64)
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: tsubasa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build Tsubasa.app and the DMG
+        run: bash mac/build_app.sh
+
+      - name: Smoke test (no model)
+        run: |
+          APP_RES="mac/build/Tsubasa.app/Contents/Resources"
+          export TSUBASA_SMOKE_ROOT="$PWD/$APP_RES/app"
+          set -o pipefail
+          "$APP_RES/python/bin/python3" -B mac/smoke.py 2>&1 | tee smoke.log
+          echo '### Smoke test (bundle Python, no model)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; cat smoke.log >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Launch the bundled app headless
+        run: |
+          APP_RES="mac/build/Tsubasa.app/Contents/Resources"
+          export TSUBASA_HOME="$RUNNER_TEMP/tsubasa-home"
+          "$APP_RES/python/bin/python3" -B "$APP_RES/app/app.py" --no-browser > app.log 2>&1 &
+          for i in $(seq 1 30); do [ -f "$TSUBASA_HOME/instance.json" ] && break; sleep 1; done
+          cat "$TSUBASA_HOME/instance.json" | python3 -c "import json,sys; d=json.load(sys.stdin); print('listening on', d['port'])"
+          kill %1 || true
+          echo '### Bundled app' >> "$GITHUB_STEP_SUMMARY"; echo 'Started headless from the bundle and published its instance file.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Unit tests on macOS (informational)
+        continue-on-error: true
+        run: |
+          APP_RES="mac/build/Tsubasa.app/Contents/Resources"
+          "$APP_RES/python/bin/python3" -B -m unittest discover -s tests 2>&1 | tail -n 60 | tee tests.log
+          echo '### Unit tests on macOS (informational: many are Windows-only)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; tail -n 25 tests.log >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: MLX engine with a small model (informational)
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          APP_RES="mac/build/Tsubasa.app/Contents/Resources"
+          MODEL=mlx-community/Qwen3-0.6B-4bit
+          "$APP_RES/python/bin/python3" -c "import sys; from huggingface_hub import snapshot_download; snapshot_download(sys.argv[1])" "$MODEL"
+          set +e
+          export TSUBASA_SMOKE_ROOT="$PWD/$APP_RES/app"
+          "$APP_RES/python/bin/python3" -B mac/smoke.py --model "$MODEL" 2>&1 | tee mlx.log
+          code=${PIPESTATUS[0]}
+          echo '### MLX engine with a small model (hosted runners are virtual machines; MLX may not get a GPU there)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; tail -n 8 mlx.log >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tsubasa-mac-arm64
+          path: tsubasa/mac/build/Tsubasa-mac-arm64.dmg
+          if-no-files-found: error
+
+      - name: Attach the DMG to the release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.release_tag }}" mac/build/Tsubasa-mac-arm64.dmg --clobber

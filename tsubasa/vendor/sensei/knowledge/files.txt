@@ -1,0 +1,548 @@
+# Files and folders. Slots: {folder} {src} {dest} {file} {file2} {ext} {ext2} {name} {n} {size} {days} {text} {url}
+# Deleting always goes to the Recycle Bin (Remove-ToRecycleBin), so it can be undone.
+
+## Browse
+
+? list files in {folder} | what is in {folder} | contents of {folder} | show the files in {folder} | ls {folder} | what's in {folder}
+Get-ChildItem -Path "{{folder}}" -Force | Select-Object Mode, LastWriteTime, @{n='SizeKB';e={if (-not $_.PSIsContainer) {[math]::Round($_.Length/1KB)}}}, Name
+= Lists everything in {folder}.
+& folder=.
+
+? list files | show files here | what files are here | list the current folder | ls
+Get-ChildItem -Force | Select-Object Mode, LastWriteTime, @{n='SizeKB';e={if (-not $_.PSIsContainer) {[math]::Round($_.Length/1KB)}}}, Name
+= Lists everything in the current folder.
+
+? list only folders in {folder} | show subfolders of {folder} | which folders are in {folder} | list subfolders
+Get-ChildItem -Path "{{folder}}" -Directory -Force | Select-Object Name, LastWriteTime
+= Lists only the folders inside {folder}.
+& folder=.
+
+? show hidden files in {folder} | list hidden files | hidden files in {folder}
+Get-ChildItem -Path "{{folder}}" -Force | Where-Object { $_.Attributes -match 'Hidden' } | Select-Object Mode, Name, LastWriteTime
+= Lists the hidden files and folders in {folder}.
+& folder=.
+
+? folder tree of {folder} | show the structure of {folder} | tree {folder} | directory tree
+tree "{{folder}}" /f
+= Draws the folder structure of {folder} including files.
+& folder=.
+
+? largest files in {folder} | {n} largest files in {folder} | biggest files in {folder} | what takes up space in {folder} | top {n} largest files | list files in {folder} sorted by size | sort {folder} by size | which files are big in {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Force -ErrorAction SilentlyContinue | Sort-Object Length -Descending | Select-Object -First {{n}} FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Lists the {n} biggest files in {folder} and its subfolders.
+& folder=$HOME ; n=10
+
+? largest {ext} files in {folder} | {n} biggest {ext} in {folder} | biggest {ext} files | largest {ext}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Sort-Object Length -Descending | Select-Object -First {{n}} FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Lists the {n} biggest {ext} files in {folder}.
+& folder=$HOME ; n=10
+
+? smallest files in {folder} | {n} smallest files in {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Sort-Object Length | Select-Object -First {{n}} FullName, Length
+= Lists the {n} smallest files in {folder}.
+& folder=. ; n=10
+
+? files bigger than {size} | files larger than {size} in {folder} | find files over {size} on {folder} | files above {size} | huge files on {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Force -ErrorAction SilentlyContinue | Where-Object Length -gt {{size}} | Sort-Object Length -Descending | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Finds files over {size} in {folder}, biggest first.
+& folder=$HOME ; size=1GB
+
+? {ext} files bigger than {size} | {ext} files larger than {size} in {folder} | {ext} over {size} | find {ext} files bigger than {size} on {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Where-Object Length -gt {{size}} | Sort-Object Length -Descending | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Finds {ext} files over {size} in {folder}.
+& folder=$HOME ; size=100MB
+
+? files smaller than {size} in {folder} | files under {size}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Where-Object Length -lt {{size}} | Select-Object FullName, Length
+= Finds files under {size} in {folder}.
+& folder=. ; size=1KB
+
+? empty files in {folder} | files with zero bytes | 0 byte files
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Where-Object Length -eq 0 | Select-Object FullName
+= Lists empty (0-byte) files in {folder}.
+& folder=.
+
+? {ext} files in {folder} | all {ext} in {folder} | find {ext} files | list {ext} files on {folder} | where are my {ext} | show {ext} on {folder} | {ext} on {folder} | find all {ext}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,2)}}, LastWriteTime
+= Lists the {ext} files in {folder} and its subfolders.
+& folder=$HOME
+
+? how many {ext} files in {folder} | count {ext} in {folder} | number of {ext} files | how many {ext} do I have
+(Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Measure-Object).Count
+= Counts the {ext} files in {folder}.
+& folder=$HOME
+
+? total size of {ext} files in {folder} | how much space do {ext} take in {folder} | size of all {ext}
+$m = Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Measure-Object Length -Sum; "{0} files, {1:N2} GB" -f $m.Count, ($m.Sum / 1GB)
+= Adds up the size of all {ext} files in {folder}.
+& folder=$HOME
+
+? newest files in {folder} | {n} newest files in {folder} | recently changed files in {folder} | latest files in {folder} | sort {folder} by date | what did I download recently | last downloaded files | newest downloads | recent files in {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First {{n}} FullName, LastWriteTime, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Shows the {n} most recently changed files in {folder}.
+& folder=$HOME\Downloads ; n=10
+
+? oldest files in {folder} | {n} oldest files in {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -First {{n}} FullName, LastWriteTime
+= Shows the {n} oldest files in {folder}.
+& folder=. ; n=10
+
+? files I downloaded {days} | what did I download {days} | downloads from the last {days}
+Get-ChildItem -Path "{{folder}}" -File -ErrorAction SilentlyContinue | Where-Object LastWriteTime -gt (Get-Date).AddDays(-{{days}}) | Sort-Object LastWriteTime -Descending | Select-Object Name, LastWriteTime, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Lists what landed in {folder} in the last {days} day(s), newest first.
+& folder=$HOME\Downloads ; days=7
+
+? files changed in the last {days} | files modified in {folder} in the last {days} | files changed {days} | what changed {days} in {folder} | files I edited {days} | files changed today
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Where-Object LastWriteTime -gt (Get-Date).AddDays(-{{days}}) | Sort-Object LastWriteTime -Descending | Select-Object FullName, LastWriteTime
+= Lists files in {folder} changed in the last {days} day(s), newest first.
+& folder=$HOME ; days=1
+
+? files not opened for {days} | files I have not used in {days} in {folder} | old unused files in {folder} | files not touched for {days}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Where-Object LastAccessTime -lt (Get-Date).AddDays(-{{days}}) | Sort-Object Length -Descending | Select-Object FullName, LastAccessTime, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Lists files in {folder} not opened for {days} days, biggest first (Windows updates "last opened" only roughly).
+& folder=$HOME ; days=365
+
+? files older than {days} in {folder} | old files in {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Where-Object LastWriteTime -lt (Get-Date).AddDays(-{{days}}) | Select-Object FullName, LastWriteTime, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Lists files in {folder} last changed more than {days} days ago (nothing is deleted).
+& folder=. ; days=30
+
+? recently opened files | recent documents | what did I open recently
+Get-ChildItem "$env:APPDATA\Microsoft\Windows\Recent" -File | Sort-Object LastWriteTime -Descending | Select-Object -First 20 @{n='Name';e={$_.BaseName}}, LastWriteTime
+= Lists the 20 files you opened most recently.
+
+## Find
+
+? find {file} | where is {file} | search for the file {file} | locate {file} | find the file {file} in {folder}
+Get-ChildItem -Path "{{folder}}" -Recurse -Filter "{{file}}" -ErrorAction SilentlyContinue | Select-Object FullName, LastWriteTime, @{n='SizeKB';e={[math]::Round($_.Length/1KB)}}
+= Searches {folder} and its subfolders for {file}.
+& folder=$HOME
+
+? find files {name} | find files with {name} in the name | search for files {name} | find a file {name} in {folder} | find folder {name}
+Get-ChildItem -Path "{{folder}}" -Recurse -Filter "*{{name}}*" -ErrorAction SilentlyContinue | Select-Object FullName, LastWriteTime
+= Finds files and folders in {folder} whose name contains "{name}".
+& folder=$HOME
+
+? find files with {text} in the name | search file names for {text} | files whose name contains {text}
+Get-ChildItem -Path "{{folder}}" -Recurse -Filter "*{{text}}*" -ErrorAction SilentlyContinue | Select-Object FullName, LastWriteTime
+= Finds files and folders in {folder} whose name contains "{text}".
+& folder=$HOME
+
+? search for {text} in files | which files contain {text} | find text {text} in {folder} | grep {text} | search inside files for {text} | files containing {text}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Select-String -Pattern '{{text}}' -SimpleMatch | Select-Object Path, LineNumber, Line
+= Searches the contents of every file in {folder} for "{text}".
+& folder=.
+
+? search for {text} in {ext} files | find {text} in {ext} in {folder}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Select-String -Pattern '{{text}}' -SimpleMatch | Select-Object Path, LineNumber, Line
+= Searches the {ext} files in {folder} for "{text}".
+& folder=.
+
+? find duplicate files in {folder} | duplicates in {folder} | identical files in {folder} | duplicate files
+Find-DuplicateFiles -Path "{{folder}}"
+= Lists files in {folder} with exactly the same content, grouped (Sensei helper: compares size, then hash).
+& folder=.
+
+? find duplicate {ext} | duplicate {ext} in {folder} | same {ext} twice
+Find-DuplicateFiles -Path "{{folder}}" -Include {{ext}}
+= Lists {ext} files in {folder} with identical content, grouped.
+& folder=$HOME
+
+? find empty folders in {folder} | empty directories in {folder} | list empty folders
+Get-ChildItem -Path "{{folder}}" -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object { -not (Get-ChildItem -LiteralPath $_.FullName -Force) } | Select-Object FullName
+= Lists folders in {folder} that contain nothing.
+& folder=.
+
+? delete empty folders in {folder} | remove empty directories in {folder}
+Get-ChildItem -Path "{{folder}}" -Directory -Recurse -ErrorAction SilentlyContinue | Sort-Object { $_.FullName.Length } -Descending | Where-Object { -not (Get-ChildItem -LiteralPath $_.FullName -Force) } | Remove-ToRecycleBin
+= Moves every empty folder in {folder} to the Recycle Bin (deepest first).
+& folder=.
+
+## Sizes
+
+? how big is {folder} | size of {folder} | folder size of {folder} | how much space does {folder} use | how large is {folder}
+Get-FolderSize -Path "{{folder}}"
+= Adds up every file in {folder}.
+& folder=.
+
+? size of each subfolder in {folder} | which folders are biggest in {folder} | folder sizes in {folder} | what uses space in {folder} | biggest folders in {folder} | largest folders on {folder} | which folders take the most space
+Get-FolderSize -Path "{{folder}}" -Subfolders
+= Shows how much space each folder inside {folder} takes, biggest first.
+& folder=$HOME
+
+? count files in {folder} | how many files are in {folder} | number of files in {folder}
+(Get-ChildItem -Path "{{folder}}" -File -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object).Count
+= Counts all files in {folder} and its subfolders.
+& folder=.
+
+? count files by type in {folder} | file types in {folder} | which kinds of files are in {folder} | extensions summary
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Group-Object Extension | Sort-Object Count -Descending | Select-Object Count, Name, @{n='SizeMB';e={[math]::Round(($_.Group | Measure-Object Length -Sum).Sum/1MB,1)}}
+= Groups the files in {folder} by extension with count and total size.
+& folder=.
+
+## Create, write, read
+
+? create a folder {name} in {folder} | make a new folder {name} on {folder} | new folder {name} | mkdir {name} | create folder {name} | create a directory {name}
+New-Item -ItemType Directory -Path "{{folder}}\{{name}}" -Force | Select-Object FullName
+= Creates the folder "{name}" in {folder}.
+& folder=.
+
+? create a file {file} in {folder} | make a new text file {file} | new file {file} | create an empty file {file} | touch {file} | create {file}
+New-Item -ItemType File -Path "{{folder}}\{{file}}" -Force | Select-Object FullName
+= Creates the empty file {file} in {folder}.
+& folder=.
+
+? show the content of {file} | read {file} | cat {file} | what is in {file} | display {file} | open {file} in the console
+Get-Content -Path "{{folder}}\{{file}}"
+= Prints the contents of {file}.
+& folder=.
+
+? first lines of {file} | head {file} | beginning of {file} | first {n} lines of {file}
+Get-Content -Path "{{folder}}\{{file}}" -TotalCount {{n}}
+= Prints the first {n} lines of {file}.
+& folder=. ; n=20
+
+? last lines of {file} | tail {file} | end of {file} | last {n} lines of {file}
+Get-Content -Path "{{folder}}\{{file}}" -Tail {{n}}
+= Prints the last {n} lines of {file}.
+& folder=. ; n=20
+
+? follow {file} | watch {file} live | tail -f {file} | follow a log file
+Get-Content -Path "{{folder}}\{{file}}" -Tail 20 -Wait
+= Shows the end of {file} and keeps printing new lines. Press Stop to end it.
+& folder=.
+
+? add {text} to {file} | append {text} to {file} | write {text} at the end of {file} | add a line {text} to {file}
+Add-Content -Path "{{folder}}\{{file}}" -Value '{{text}}'
+= Adds "{text}" as a new line at the end of {file}.
+& folder=.
+
+? write {text} to {file} | save {text} in {file} | put {text} into {file} | replace the content of {file} with {text}
+Set-Content -Path "{{folder}}\{{file}}" -Value '{{text}}'
+= Writes "{text}" into {file}, replacing what was there.
+& folder=.
+
+? replace {text} in {file} | find and replace in {file}
+(Get-Content -Path "{{folder}}\{{file}}" -Raw).Replace('{{text}}', '<new text>') | Set-Content -Path "{{folder}}\{{file}}"
+= Replaces every "{text}" in {file}; type the new text where it says <new text>.
+& folder=.
+
+? count words in {file} | how many words are in {file} | word count of {file}
+(Get-Content -Path "{{folder}}\{{file}}" -Raw | Measure-Object -Word).Words
+= Counts the words in {file}.
+& folder=.
+
+? count lines in {file} | how many lines does {file} have | number of lines in {file}
+(Get-Content -Path "{{folder}}\{{file}}" | Measure-Object -Line).Lines
+= Counts the lines in {file}.
+& folder=.
+
+? count characters in {file} | how many characters in {file}
+(Get-Content -Path "{{folder}}\{{file}}" -Raw | Measure-Object -Character).Characters
+= Counts the characters in {file}.
+& folder=.
+
+? sort the lines of {file} | remove duplicate lines from {file} | unique lines of {file}
+Get-Content -Path "{{folder}}\{{file}}" | Sort-Object -Unique
+= Prints the lines of {file} sorted, each only once (the file is not changed).
+& folder=.
+
+? compare {file} and {file2} | difference between {file} and {file2} | diff {file} {file2}
+Compare-Object (Get-Content -Path "{{folder}}\{{file}}") (Get-Content -Path "{{folder}}\{{file2}}")
+= Lines only in {file} show <=, lines only in {file2} show =>. No output means the files are the same.
+& folder=.
+
+? compare {src} and {dest} | difference between folders {src} and {dest} | which files are missing in {dest}
+Compare-Object @(Get-ChildItem -Path "{{src}}" -Recurse -File | ForEach-Object { $_.FullName.Substring((Resolve-Path "{{src}}").Path.Length) }) @(Get-ChildItem -Path "{{dest}}" -Recurse -File | ForEach-Object { $_.FullName.Substring((Resolve-Path "{{dest}}").Path.Length) })
+= Lists files only in {src} (<=) or only in {dest} (=>).
+
+## Open
+
+? open {file} | open the file {file} | launch {file}
+Invoke-Item -Path "{{folder}}\{{file}}"
+= Opens {file} with its default program.
+& folder=.
+
+? open {folder} | open the {folder} folder | show {folder} in explorer | open folder {folder} | go to {folder} in explorer | explorer {folder}
+Invoke-Item -Path "{{folder}}"
+= Opens {folder} in File Explorer.
+& folder=.
+
+? open this folder in explorer | open the current folder | explorer here | show current folder in explorer
+Invoke-Item .
+= Opens the current folder in File Explorer.
+
+? show {file} in explorer | open the folder containing {file} | reveal {file} | open file location of {file}
+explorer.exe /select,"$((Resolve-Path "{{folder}}\{{file}}").Path)"
+= Opens File Explorer with {file} selected.
+& folder=.
+
+? open {file} in notepad | edit {file} | edit {file} in notepad
+notepad "{{folder}}\{{file}}"
+= Opens {file} in Notepad.
+& folder=.
+
+? go to {folder} | cd {folder} | change directory to {folder} | switch to {folder} | move into {folder}
+Set-Location -Path "{{folder}}"; Get-Location
+= Makes {folder} the current folder of Sensei's PowerShell session.
+
+? go up a folder | cd .. | parent folder
+Set-Location ..; Get-Location
+= Moves to the parent folder.
+
+? where am I | which folder am I in | pwd
+Get-Location
+= Shows the current folder of Sensei's PowerShell session.
+
+## Copy, move, rename
+
+? copy {src} to {dest} | copy everything from {src} to {dest} | backup {src} to {dest} | copy folder {src} to {dest} | copy all files from {src} to {dest} | back up {src} to {dest}
+New-Item -ItemType Directory -Path "{{dest}}" -Force | Out-Null; Copy-Item -Path "{{src}}\*" -Destination "{{dest}}" -Recurse -Force -PassThru | Measure-Object | ForEach-Object { "$($_.Count) items copied to {{dest}}" }
+= Copies everything inside {src} into {dest} (existing files with the same name are overwritten).
+
+? copy {file} to {dest} | copy the file {file} to {dest} | duplicate {file} to {dest}
+Copy-Item -Path "{{src}}\{{file}}" -Destination "{{dest}}" -PassThru | Select-Object FullName
+= Copies {file} to {dest}.
+& src=.
+
+? move {file} to {dest} | move the file {file} to {dest}
+Move-Item -Path "{{src}}\{{file}}" -Destination "{{dest}}" -PassThru | Select-Object FullName
+= Moves {file} to {dest}.
+& src=.
+
+? move {ext} from {src} to {dest} | move all {ext} files from {src} to {dest} | move {ext} to {dest} | move my {ext} into {dest}
+New-Item -ItemType Directory -Path "{{dest}}" -Force | Out-Null; Get-ChildItem -Path "{{src}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Move-Item -Destination "{{dest}}" -PassThru | Select-Object Name
+= Moves every {ext} file from {src} (and subfolders) into {dest}.
+& src=$HOME\Downloads
+
+? copy {ext} from {src} to {dest} | copy all {ext} files from {src} to {dest} | copy {ext} to {dest} | backup {ext} to {dest}
+New-Item -ItemType Directory -Path "{{dest}}" -Force | Out-Null; Get-ChildItem -Path "{{src}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Copy-Item -Destination "{{dest}}" -PassThru | Select-Object Name
+= Copies every {ext} file from {src} (and subfolders) into {dest}.
+& src=$HOME\Downloads
+
+? move everything from {src} to {dest} | move folder {src} to {dest} | move all files from {src} to {dest}
+New-Item -ItemType Directory -Path "{{dest}}" -Force | Out-Null; Get-ChildItem -Path "{{src}}" -Force | Move-Item -Destination "{{dest}}" -PassThru | Select-Object Name
+= Moves everything inside {src} into {dest}.
+
+? rename {file} to {file2} | rename the file {file} to {file2} | change the name of {file} to {file2}
+Rename-Item -Path "{{folder}}\{{file}}" -NewName "{{file2}}" -PassThru | Select-Object FullName
+= Renames {file} to {file2}.
+& folder=.
+
+? rename {file} to {name} | rename the file {file} to {name}
+Rename-Item -Path "{{folder}}\{{file}}" -NewName "{{name}}" -PassThru | Select-Object FullName
+= Renames {file} to {name}.
+& folder=.
+
+? rename all {ext} files to {ext2} | change the extension from {ext} to {ext2} in {folder} | rename {ext} to {ext2} | change file extension {ext} to {ext2}
+Get-ChildItem -Path "{{folder}}" -File -Filter "*.{{ext|raw}}" | Rename-Item -NewName { [IO.Path]::ChangeExtension($_.Name, '{{ext2|raw}}') } -PassThru | Select-Object Name
+= Renames every .{ext} file in {folder} to .{ext2} (only the name changes, not the format).
+& folder=.
+
+? replace {text} in file names in {folder} | rename files replacing {text} | remove {text} from file names
+Get-ChildItem -Path "{{folder}}" -File -Filter "*{{text}}*" | Rename-Item -NewName { $_.Name.Replace('{{text}}', '<new text>') } -PassThru | Select-Object Name
+= Replaces "{text}" in every file name in {folder}; type the replacement where it says <new text> (keep it empty to remove).
+& folder=.
+
+? add numbers to the file names in {folder} | prefix files with numbers | rename files 001 002
+$i = 1; Get-ChildItem -Path "{{folder}}" -File | Sort-Object Name | ForEach-Object { Rename-Item -LiteralPath $_.FullName -NewName ("{0:D3}_{1}" -f $i++, $_.Name) -PassThru } | Select-Object Name
+= Prefixes the files in {folder} with 001_, 002_, ... in name order.
+& folder=.
+
+? rename photos by date in {folder} | rename files by date taken | rename files to their date
+Get-ChildItem -Path "{{folder}}" -File | ForEach-Object { $new = '{0:yyyy-MM-dd HHmmss}{1}' -f $_.LastWriteTime, $_.Extension; if ($new -ne $_.Name -and -not (Test-Path (Join-Path $_.DirectoryName $new))) { Rename-Item -LiteralPath $_.FullName -NewName $new -PassThru } } | Select-Object Name
+= Renames each file in {folder} to its last-changed date and time, e.g. 2026-10-17 141500.jpg.
+& folder=.
+
+## Organise
+
+? sort {folder} by type | organize {folder} by file type | sort files into folders by extension | tidy up {folder} | clean up {folder} into folders | organize my downloads
+Get-ChildItem -Path "{{folder}}" -File | ForEach-Object { $dest = Join-Path $_.DirectoryName ($(if ($_.Extension) { $_.Extension.TrimStart('.').ToUpper() } else { 'OTHER' })); New-Item -ItemType Directory -Path $dest -Force | Out-Null; Move-Item -LiteralPath $_.FullName -Destination $dest -PassThru } | Group-Object { $_.Directory.Name } | Select-Object Count, Name
+= Moves every file in {folder} into a subfolder named after its type (PDF, JPG, ZIP ...).
+& folder=$HOME\Downloads
+
+? sort {folder} into folders by month | organize {ext} by date | sort photos into year and month folders | organize {folder} by date
+Get-ChildItem -Path "{{folder}}" -File | ForEach-Object { $dest = Join-Path $_.DirectoryName ('{0:yyyy}\{0:yyyy-MM}' -f $_.LastWriteTime); New-Item -ItemType Directory -Path $dest -Force | Out-Null; Move-Item -LiteralPath $_.FullName -Destination $dest -PassThru } | Group-Object { $_.Directory.Name } | Select-Object Count, Name
+= Moves the files in {folder} into year\year-month folders by their date.
+& folder=.
+
+? move screenshots to a folder | move all screenshots from {src} to {dest} | collect screenshots
+New-Item -ItemType Directory -Path "{{dest}}" -Force | Out-Null; Get-ChildItem -Path "{{src}}" -File -Recurse -Filter "Screenshot*" -ErrorAction SilentlyContinue | Where-Object DirectoryName -ne (Resolve-Path "{{dest}}").Path | Move-Item -Destination "{{dest}}" -PassThru | Select-Object Name
+= Moves every file whose name starts with "Screenshot" from {src} into {dest}.
+& src=$([Environment]::GetFolderPath('MyPictures')) ; dest=$([Environment]::GetFolderPath('MyPictures'))\Screenshots
+
+? move all screenshots from {src} to a folder {name} | put the screenshots in a folder {name} | move screenshots into a folder {name}
+$d = Join-Path "{{src}}" "{{name}}"; New-Item -ItemType Directory -Path $d -Force | Out-Null; Get-ChildItem -Path "{{src}}" -File -Filter "Screenshot*" | Move-Item -Destination $d -PassThru | Select-Object Name
+= Moves the files named "Screenshot..." in {src} into the subfolder {name}.
+& src=$([Environment]::GetFolderPath('MyPictures'))
+
+? flatten {folder} | move all files from subfolders up into {folder} | get files out of subfolders
+Get-ChildItem -Path "{{folder}}" -File -Recurse | Where-Object DirectoryName -ne (Resolve-Path "{{folder}}").Path | ForEach-Object { $t = Join-Path (Resolve-Path "{{folder}}").Path $_.Name; if (-not (Test-Path $t)) { Move-Item -LiteralPath $_.FullName -Destination $t -PassThru } } | Select-Object Name
+= Moves every file from the subfolders of {folder} into {folder} itself (files whose name already exists are skipped).
+& folder=.
+
+## Delete (to the Recycle Bin)
+
+? delete {file} | remove {file} | delete the file {file} | trash {file} | get rid of {file}
+Remove-ToRecycleBin -Path "{{folder}}\{{file}}"
+= Moves {file} to the Recycle Bin.
+& folder=.
+
+? delete folder {name} | delete the folder {name} in {folder} | remove the directory {name}
+Remove-ToRecycleBin -Path "{{folder}}\{{name}}"
+= Moves the folder {name} (with everything inside) to the Recycle Bin.
+& folder=.
+
+? delete the folder {folder} | remove the folder {path}
+Remove-ToRecycleBin -Path "{{folder}}"
+= Moves {folder} (with everything inside) to the Recycle Bin.
+
+? delete {ext} files in {folder} | delete all {ext} from {folder} | remove {ext} files from {folder} | get rid of {ext} in {folder} | delete {ext}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Remove-ToRecycleBin
+= Moves every {ext} file in {folder} (and subfolders) to the Recycle Bin.
+
+? delete files older than {days} in {folder} | delete old files in {folder} | clean up files older than {days} in {folder} | remove files older than {days}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Where-Object LastWriteTime -lt (Get-Date).AddDays(-{{days}}) | Remove-ToRecycleBin
+= Moves files in {folder} last changed more than {days} days ago to the Recycle Bin.
+& days=30
+
+? delete {ext} files older than {days} in {folder} | remove {ext} older than {days}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -Include {{ext}} -ErrorAction SilentlyContinue | Where-Object LastWriteTime -lt (Get-Date).AddDays(-{{days}}) | Remove-ToRecycleBin
+= Moves {ext} files in {folder} older than {days} days to the Recycle Bin.
+& days=30
+
+? delete files bigger than {size} in {folder} | remove files larger than {size}
+Get-ChildItem -Path "{{folder}}" -File -Recurse -ErrorAction SilentlyContinue | Where-Object Length -gt {{size}} | Remove-ToRecycleBin
+= Moves files over {size} in {folder} to the Recycle Bin.
+
+? empty {folder} | delete everything in {folder} | clear {folder} | delete all files in {folder}
+Get-ChildItem -Path "{{folder}}" -Force | Remove-ToRecycleBin
+= Moves everything inside {folder} to the Recycle Bin (the folder itself stays).
+
+? delete duplicate files in {folder} | remove duplicates in {folder} keep one
+Find-DuplicateFiles -Path "{{folder}}" | Group-Object Group | ForEach-Object { $_.Group | Select-Object -Skip 1 } | ForEach-Object Path | Remove-ToRecycleBin
+= Keeps one copy of each duplicate in {folder} and moves the other copies to the Recycle Bin.
+& folder=.
+
+? delete a file permanently {file} | permanently delete {file} | delete {file} without recycle bin
+Remove-Item -LiteralPath "{{folder}}\{{file}}" -Force
+= Deletes {file} permanently (it does NOT go to the Recycle Bin).
+& folder=.
+
+## Archives
+
+? zip {src} | compress {src} into a zip | zip {src} to {dest} | make a zip of {src} | create a zip from {src} | archive {src}
+$src = Get-Item -LiteralPath "{{src}}"; $to = (Resolve-Path "{{dest}}").Path; if ($to -eq $src.FullName) { $to = $src.Parent.FullName }; $zip = Join-Path $to ($src.Name + '.zip'); Compress-Archive -Path "$($src.FullName)\*" -DestinationPath $zip -Force; Get-Item $zip | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Packs everything in {src} into a zip file in {dest}.
+& src=. ; dest=$([Environment]::GetFolderPath('Desktop'))
+
+? zip {file} | compress {file} | make a zip of {file}
+Compress-Archive -Path "{{src}}\{{file}}" -DestinationPath "{{src}}\{{file}}.zip" -Force; Get-Item "{{src}}\{{file}}.zip" | Select-Object FullName, Length
+= Packs {file} into {file}.zip next to it.
+& src=.
+
+? zip {ext} files in {folder} | compress all {ext} in {folder}
+$files = Get-ChildItem -Path "{{folder}}\*" -File -Include {{ext}}; Compress-Archive -Path $files.FullName -DestinationPath "{{folder}}\{{ext|raw}}-files.zip" -Force; Get-Item "{{folder}}\{{ext|raw}}-files.zip" | Select-Object FullName, Length
+= Packs the {ext} files of {folder} into {ext}-files.zip.
+& folder=.
+
+? unzip {file} | extract {file} | unzip {file} to {dest} | extract {file} into {dest} | unpack {file}
+$zip = Get-Item -LiteralPath "{{src}}\{{file}}"; $to = "{{dest}}"; if (-not $to) { $to = Join-Path $zip.DirectoryName $zip.BaseName }; Expand-Archive -LiteralPath $zip.FullName -DestinationPath $to -Force; "Extracted to $to"
+= Extracts {file} into a folder of the same name (or into {dest}).
+& src=. ; dest=
+
+? unzip all zip files in {folder} | extract every zip in {folder}
+Get-ChildItem -Path "{{folder}}" -Filter *.zip | ForEach-Object { Expand-Archive -LiteralPath $_.FullName -DestinationPath (Join-Path $_.DirectoryName $_.BaseName) -Force; "Extracted $($_.Name)" }
+= Extracts each zip in {folder} into a folder named after it.
+& folder=.
+
+? what is inside the zip {file} | list the files inside {file} | files in the zip {file}
+% file=zip
+Add-Type -AssemblyName System.IO.Compression.FileSystem; $z = [IO.Compression.ZipFile]::OpenRead((Resolve-Path "{{folder}}\{{file}}").Path); $z.Entries | Select-Object FullName, @{n='SizeKB';e={[math]::Round($_.Length/1KB)}}; $z.Dispose()
+= Lists the files inside the zip without extracting it.
+& folder=.
+
+## File details
+
+? details of {file} | properties of {file} | info about {file} | when was {file} created | size of {file}
+Get-Item -Path "{{folder}}\{{file}}" | Select-Object FullName, @{n='SizeKB';e={[math]::Round($_.Length/1KB,1)}}, CreationTime, LastWriteTime, LastAccessTime, Attributes
+= Shows size, dates and attributes of {file}.
+& folder=.
+
+? hash of {file} | checksum of {file} | sha256 of {file} | md5 of {file} | verify {file}
+Get-FileHash -Path "{{folder}}\{{file}}" -Algorithm SHA256
+= Calculates the SHA256 checksum of {file}.
+& folder=.
+
+? does {file} exist | is there a file {file} | check if {file} exists
+Test-Path -Path "{{folder}}\{{file}}"
+= True if {file} exists.
+& folder=.
+
+? does {folder} exist | check if the folder {path} exists
+Test-Path -Path "{{folder}}"
+= True if the folder exists.
+
+? who owns {file} | permissions of {file} | owner of {file}
+Get-Acl -Path "{{folder}}\{{file}}" | Select-Object Owner, AccessToString | Format-List
+= Shows the owner and the access rights of {file}.
+& folder=.
+
+? is {file} signed | digital signature of {file} | check the signature of {file}
+Get-AuthenticodeSignature -FilePath "{{folder}}\{{file}}" | Select-Object Status, @{n='Signer';e={$_.SignerCertificate.Subject}}
+= Shows whether {file} has a valid digital signature and who signed it.
+& folder=.
+
+? make {file} read only | set {file} to read-only
+Set-ItemProperty -Path "{{folder}}\{{file}}" -Name IsReadOnly -Value $true; "{{file}} is read-only now"
+= Marks {file} read-only.
+& folder=.
+
+? make {file} writable | remove read-only from {file}
+Set-ItemProperty -Path "{{folder}}\{{file}}" -Name IsReadOnly -Value $false; "{{file}} is writable now"
+= Removes the read-only mark from {file}.
+& folder=.
+
+? hide {file} | make {file} hidden
+(Get-Item -Path "{{folder}}\{{file}}").Attributes += 'Hidden'; "{{file}} is hidden now"
+= Hides {file} in File Explorer.
+& folder=.
+
+? unhide {file} | make {file} visible
+$i = Get-Item -Path "{{folder}}\{{file}}" -Force; $i.Attributes = $i.Attributes -band -bnot [IO.FileAttributes]::Hidden; "{{file}} is visible now"
+= Makes the hidden file {file} visible again.
+& folder=.
+
+? unblock {file} | file is blocked by windows | unblock downloaded files in {folder}
+Get-ChildItem -Path "{{folder}}" -File -Filter "{{file}}" | Unblock-File; "Unblocked"
+= Removes the "downloaded from the internet" mark so Windows stops blocking {file}.
+& folder=. ; file=*
+
+? copy the path of {file} | copy full path of {file} to clipboard
+(Resolve-Path "{{folder}}\{{file}}").Path | Set-Clipboard; Get-Clipboard
+= Copies the full path of {file} to the clipboard.
+& folder=.
+
+? copy the current folder path | copy this path to clipboard
+(Get-Location).Path | Set-Clipboard; Get-Clipboard
+= Copies the current folder's path to the clipboard.
+
+? create a desktop shortcut to {folder} | shortcut to {folder} on the desktop
+$t = Get-Item -LiteralPath "{{folder}}"; $s = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) ($t.Name + '.lnk'))); $s.TargetPath = $t.FullName; $s.Save(); "Shortcut to $($t.FullName) created on the desktop"
+= Puts a shortcut to {folder} on your desktop.
+
+? create a desktop shortcut to {file} | shortcut to {file} on the desktop
+$t = Get-Item -LiteralPath "{{folder}}\{{file}}"; $s = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) ($t.BaseName + '.lnk'))); $s.TargetPath = $t.FullName; $s.Save(); "Shortcut to $($t.FullName) created on the desktop"
+= Puts a shortcut to {file} on your desktop.
+& folder=.
+
+## Downloads from the web
+
+? download {url} | download {url} to {folder} | save {url} to {folder} | get the file {url} | wget {url}
+$name = [IO.Path]::GetFileName(([uri]'{{url}}').LocalPath); if (-not $name) { $name = 'download.html' }; $out = Join-Path "{{folder}}" $name; Invoke-WebRequest -Uri '{{url}}' -OutFile $out; Get-Item $out | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,2)}}
+= Downloads {url} into {folder}.
+& folder=$HOME\Downloads
+
+? download {url} and open it | download and open {url}
+$name = [IO.Path]::GetFileName(([uri]'{{url}}').LocalPath); if (-not $name) { $name = 'download.html' }; $out = Join-Path "$HOME\Downloads" $name; Invoke-WebRequest -Uri '{{url}}' -OutFile $out; Invoke-Item $out
+= Downloads {url} into Downloads and opens it.

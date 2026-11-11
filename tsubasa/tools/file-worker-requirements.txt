@@ -1,0 +1,10 @@
+# Packages of Tsubasa's document worker (tools/file_worker.py: PDF, Word, Excel), the exact versions used on Windows
+# (copied from the Morph runtime by tools/prepare_file_worker.py). On the Mac, put them in their own venv:
+#   python3.12 -m venv .venv/file-worker && .venv/file-worker/bin/pip install -r tools/file-worker-requirements.txt
+# core/file_hub.py starts .venv/file-worker/python.exe on Windows; on the Mac it must use .venv/file-worker/bin/python.
+pymupdf==1.27.2.2
+python-docx==1.2.0
+openpyxl==3.1.5
+lxml==6.1.0
+defusedxml==0.7.1
+typing_extensions==4.15.0

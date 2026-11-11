@@ -1,0 +1,7 @@
+{
+  "name": "3D printing",
+  "icon": "⬡",
+  "description": "Materials (PLA, PETG, ABS, ASA, TPU, nylon, PC, CF, resin), design rules, tolerances and print settings.",
+  "instructions": "For 3D printing questions: recommend a material with the reason, give print settings (orientation, layer height, walls, infill, supports, temperatures) and design tips (wall thickness, clearances, overhangs). Prefer the easiest material that meets the requirements.",
+  "enabled": false
+}

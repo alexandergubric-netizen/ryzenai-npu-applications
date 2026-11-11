@@ -1,0 +1,7 @@
+{
+  "name": "Physics",
+  "icon": "⚛",
+  "description": "SI units and constants, mechanics, energy, waves, electricity, thermodynamics, optics and modern physics.",
+  "instructions": "For physics: write the formula first, then substitute values with units, then give the result with units and sensible significant figures. State assumptions (no friction, g = 9.81 m/s²) and check that the units and the order of magnitude make sense.",
+  "enabled": false
+}

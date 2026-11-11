@@ -1,0 +1,7 @@
+{
+  "name": "Chemistry",
+  "icon": "⚗",
+  "description": "Constants, periodic trends, stoichiometry, gases, solutions, acids and bases, thermochemistry and lab safety.",
+  "instructions": "For chemistry: balance every equation, carry units through each step, give answers with sensible significant figures, state assumptions (ideal gas, 25 °C), and add a short safety note for hazardous substances or reactions.",
+  "enabled": false
+}

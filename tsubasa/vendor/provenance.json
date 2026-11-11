@@ -1,0 +1,23 @@
+[
+  {
+    "unchanged": true,
+    "version": "Local Washi source snapshot 2026-10-30; version identified by SHA-256",
+    "sha256": "87F46275F8DB01D66A25FF28B7224EF8879974FACE1C59A9DC9D21C1DB728BCE",
+    "destination": "vendor/washi/flmshare.py",
+    "source": "<apps>\\washi\\core\\flmshare.py"
+  },
+  {
+    "unchanged": true,
+    "version": "Local Washi source snapshot 2026-10-30; version identified by SHA-256",
+    "sha256": "EF3B26828563788072CB0609A88742B5124E1BC29FE236292DF0D2E9B6ADF9A2",
+    "destination": "vendor/washi/websec.py",
+    "source": "<apps>\\washi\\core\\websec.py"
+  },
+  {
+    "unchanged": true,
+    "version": "Local Washi source snapshot 2026-10-30; version identified by SHA-256",
+    "sha256": "C17996835EBE81255E3F630EF6622B99BC0312DA342F5ED51F6FB5E30790FBB1",
+    "destination": "vendor/washi/llm.py",
+    "source": "<apps>\\washi\\core\\llm.py"
+  }
+]

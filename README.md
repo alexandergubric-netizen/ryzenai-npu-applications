@@ -4,6 +4,10 @@ Free Windows apps from one author, built around a private AI that runs **locally
 
 **Not every app needs a Ryzen AI PC.** The table below shows exactly what each app needs and what you get without an NPU.
 
+## 🕊️ New: Tsubasa beta
+
+**Tsubasa** 翼 is a private AI assistant for your own PC: chat with saved conversations and workspaces, attach PDFs, Word, Excel, code or pictures, a Code mode that writes files and runs terminal steps only after your click (with Sensei's 541 tested PowerShell tasks built in), a knowledge Library and an experimental 3D-print designer. It runs on the Ryzen AI NPU through FastFlowLM. An **experimental Mac version** for Apple silicon uses MLX instead; it is built and smoke-tested by GitHub Actions but has not been tried on a real Mac yet ([details](tsubasa/MAC.md)). It is a beta: please report what you find.
+
 ## 🧰 New: Tansu beta
 
 **Tansu** 箪笥 is a smart archive chest. Drop files or folders on it and it packs them into verified ZIP, 7z or TAR.XZ archives, files them in **Documents\Archives** and keeps that library tidy and searchable. On a Ryzen AI PC a local AI plans the format, folder and name of each archive and explains why; on any other PC its built-in rules do the same job. It is a beta: please report what you find.
@@ -39,9 +43,10 @@ Install the new version over the old one — your settings stay. The apps also u
 | **Kaizen 5S** | 1.0.2 | Tidies your PC with the Japanese 5S method, applied to the files on your computer (not industrial 5S): old files, duplicates, cluttered Downloads and Desktop. Ask the AI about your scan. | 🟡 **AI chat only.** Scans, scores and actions work without AI. The AI runs on the NPU (FastFlowLM). *Experimental:* on PCs without one it can use **LM Studio** instead, which runs the model on the processor or graphics card, not an NPU, and is slower. | [Kaizen5S-Setup.exe](../../releases/tag/kaizen-v1.0.2) |
 | **Postura** | 1.0.5 | Your desk-side coach for a healthier workday. Adjust a virtual desk and chair to find your ideal setup, and get gentle reminders to rest your eyes and move. For offices and screen workers, informed by the EU screen-work directive (90/270/EEC), Danish Arbejdstilsynet guidance on screen work and EN 12464-1 lighting; the sources are listed in the app. Works fully offline. General guidance: not medical advice and not a workplace assessment (APV). | 🟡 **Assistant only.** Everything else works on any Windows 11 PC. The optional assistant runs on the Ryzen AI NPU. *Experimental and untested:* on Intel Core Ultra PCs it can use Microsoft Foundry Local instead. | [Postura-Setup.exe](../../releases/tag/postura-v1.0.5) |
 | **Tansu** 箪笥 | 0.9.0 beta | Smart archiver: packs files and folders into verified ZIP, 7z (AES-256 with hidden names) or TAR.XZ archives in Documents\Archives, and keeps that library tidy, searchable and checked. The AI advisor plans format, folder and name for each archive. | 🟡 **AI advisor only.** Without an NPU, Tansu plans every archive with its built-in rules; archiving, the library and the checkup work the same. | [Tansu-Setup.exe](../../releases/tag/tansu-v0.9.0) |
+| **Tsubasa** 翼 | 0.9.5 beta | Private AI assistant: chat, documents, a Code mode that asks before every step, a knowledge Library, experimental 3D-print design. Includes the Sensei command library. | 🔴 **Yes, for answers.** It installs on any Windows 11 PC, but chat needs the NPU engine (FastFlowLM). *Experimental:* a Mac build for Apple silicon runs on MLX. | [Tsubasa-Setup.exe](../../releases/tag/tsubasa-v0.9.5) |
 | **Tatami** 畳 | 1.0.0 | Fast disk space analyser in the spirit of WizTree, with a treemap, duplicate finder and insights. | ⚪ **No.** Contains no AI and runs on any Windows 10/11 PC. | [Tatami-Setup.exe](../../releases/tag/tatami-v1.0.0) |
 
-**Legend:** 🟡 works on any PC, with the AI part needing a Ryzen AI NPU · ⚪ no AI, works everywhere.
+**Legend:** 🟡 works on any PC, with the AI part needing a Ryzen AI NPU · 🔴 needs the AI engine to be useful · ⚪ no AI, works everywhere.
 
 All installers install per user, need no admin rights, and remove cleanly from Settings → Apps. One-time downloads: an AI engine and its model (2–3 GB) when you choose the AI during setup; Sensei only goes online for tasks you ask for (for example an internet speed test).
 
@@ -79,11 +84,11 @@ Get-FileHash .\Washi-Setup.exe -Algorithm SHA256
 
 ## Source code
 
-The complete source of every public app is in this repository, one folder per app (`washi`, `morph`, `sensei`, `kaizen`, `postura`, `tansu`, `tatami`), with its own README, build script and tests. Found a security problem? See [SECURITY.md](SECURITY.md).
+The complete source of every public app is in this repository, one folder per app (`washi`, `morph`, `sensei`, `kaizen`, `postura`, `tansu`, `tatami`, `tsubasa`), with its own README, build script and tests. Found a security problem? See [SECURITY.md](SECURITY.md).
 
 ## Licences
 
-The apps' own code is MIT licensed. © 2026 Alexander Gubric. **Washi** and **Morph** use PyMuPDF (AGPL-3.0), so as distributed they are covered by the AGPL-3.0; Morph also bundles FFmpeg (GPL-3.0) and pandoc (GPL-2.0+). Tansu bundles py7zr (LGPL-2.1+). Each app's folder and installer include the full licence texts and third-party notices.
+The apps' own code is MIT licensed. © 2026 Alexander Gubric. **Washi**, **Morph** and **Tsubasa** use PyMuPDF (AGPL-3.0), so as distributed they are covered by the AGPL-3.0; Morph also bundles FFmpeg (GPL-3.0) and pandoc (GPL-2.0+). Tansu bundles py7zr (LGPL-2.1+). Each app's folder and installer include the full licence texts and third-party notices.
 
 ## Feedback
 

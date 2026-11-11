@@ -1,0 +1,110 @@
+# Disks, space and cleanup.
+
+? free disk space | how much space is left | disk usage | drive space | free space | how full is my disk | storage left | which drive has the most free space | space on all drives
+Get-PSDrive -PSProvider FileSystem | Where-Object Used -ne $null | Select-Object Name, @{n='UsedGB';e={[math]::Round($_.Used/1GB,1)}}, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}, @{n='Free%';e={if ($_.Used + $_.Free) { [math]::Round(100*$_.Free/($_.Used + $_.Free)) }}}
+= Shows used and free space on every drive.
+
+? free space on {drive} | how much space is left on {drive} | space on {drive} | size of drive {drive}
+Get-Volume -DriveLetter {{drive}} | Select-Object DriveLetter, FileSystemLabel, @{n='SizeGB';e={[math]::Round($_.Size/1GB,1)}}, @{n='FreeGB';e={[math]::Round($_.SizeRemaining/1GB,1)}}
+= Shows size and free space of drive {drive}.
+
+? list volumes | drive letters | partitions | list drives
+Get-Volume | Where-Object DriveLetter | Select-Object DriveLetter, FileSystemLabel, FileSystem, DriveType, HealthStatus, @{n='SizeGB';e={[math]::Round($_.Size/1GB,1)}}, @{n='FreeGB';e={[math]::Round($_.SizeRemaining/1GB,1)}}
+= Lists drive letters with label, file system, type, health and space.
+
+? disk health | is my ssd healthy | physical disks | which disks do I have | is my disk an ssd
+Get-PhysicalDisk | Select-Object FriendlyName, MediaType, BusType, HealthStatus, OperationalStatus, @{n='SizeGB';e={[math]::Round($_.Size/1GB)}}
+= Lists your physical disks with type, connection and health.
+
+? ssd wear | disk temperature | disk errors | smart data | ssd health details
+Get-PhysicalDisk | Get-StorageReliabilityCounter | Select-Object DeviceId, Temperature, Wear, ReadErrorsTotal, WriteErrorsTotal, PowerOnHours
+= Shows temperature, wear %, errors and power-on hours.
+! admin
+
+? check {drive} for errors | scan the disk {drive} | chkdsk {drive} | check disk {drive}
+Repair-Volume -DriveLetter {{drive}} -Scan
+= Scans drive {drive} for file system errors without taking it offline.
+& drive=C
+! admin
+
+? optimize {drive} | trim {drive} | defrag {drive} | optimize my ssd
+Optimize-Volume -DriveLetter {{drive}} -Verbose
+= Runs TRIM on SSDs or defragments hard disks for drive {drive}.
+& drive=C
+! admin
+
+? usb drives | list usb disks | which usb sticks are connected
+Get-Disk | Where-Object BusType -eq 'USB' | Select-Object Number, FriendlyName, @{n='SizeGB';e={[math]::Round($_.Size/1GB,1)}}, HealthStatus
+= Lists connected USB storage devices.
+
+? eject {drive} | eject the usb {drive} | safely remove {drive} | unplug {drive} | eject usb drive {drive}
+Dismount-Drive -Letter {{drive}}
+= Safely ejects drive {drive} so you can unplug it (Sensei helper).
+
+? eject the usb drive | eject usb | safely remove usb
+Get-Volume | Where-Object DriveType -eq 'Removable' | Where-Object DriveLetter | ForEach-Object { Dismount-Drive -Letter $_.DriveLetter }
+= Safely ejects every removable USB drive.
+
+? format {drive} | format the usb {drive} | erase the drive {drive}
+Format-Volume -DriveLetter {{drive}} -FileSystem exFAT -Confirm:$false
+= ERASES EVERYTHING on drive {drive} and formats it as exFAT. Double-check the letter!
+! admin
+
+? rename drive {drive} to {name} | label drive {drive} {name}
+Set-Volume -DriveLetter {{drive}} -NewFileSystemLabel "{{name}}"; Get-Volume -DriveLetter {{drive}} | Select-Object DriveLetter, FileSystemLabel
+= Changes the label of drive {drive} to {name}.
+! admin
+
+## Cleanup
+
+? size of the temp folder | how big are temporary files | temp size
+Get-FolderSize -Path $env:TEMP
+= Shows how much space your temp folder uses.
+
+? clean temp files | delete temporary files | clear temp folder | free up space | clean up my pc | delete junk files
+Clear-TempFiles
+= Deletes what can be deleted in your temp folder and tells you how much space was freed (Sensei helper).
+
+? recycle bin size | how big is the recycle bin
+$n = @((New-Object -ComObject Shell.Application).Namespace(10).Items()).Count; $mb = (Get-ChildItem 'C:\$Recycle.Bin' -File -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1MB; "{0} items, about {1:N0} MB on C:" -f $n, $mb
+= Shows how many items are in the Recycle Bin and roughly how much space they take.
+
+? disk cleanup | open disk cleanup | clean system files
+cleanmgr.exe /d C
+= Opens Windows Disk Cleanup for drive C:.
+
+? storage sense | storage settings | what is using space on my disk | storage overview
+Start-Process "ms-settings:storagesense"
+= Opens Storage settings with a breakdown of what uses space.
+
+? largest folders on {drive} | what uses space on {drive} | biggest folders on drive {drive} | what is taking up space on {drive} | what fills my {drive} drive
+Get-FolderSize -Path "{{drive}}:\" -Subfolders
+= Shows how much space each top-level folder on {drive}: takes (can take a few minutes).
+& drive=C
+
+? largest files on {drive} | biggest files on drive {drive}
+Get-ChildItem -Path "{{drive}}:\" -File -Recurse -Force -ErrorAction SilentlyContinue | Sort-Object Length -Descending | Select-Object -First 20 FullName, @{n='SizeGB';e={[math]::Round($_.Length/1GB,2)}}
+= Lists the 20 biggest files on {drive}: (can take a few minutes).
+& drive=C
+
+? windows.old size | old windows installation | can I delete windows.old
+if (Test-Path C:\Windows.old) { Get-FolderSize C:\Windows.old } else { 'There is no Windows.old folder.' }
+= Shows the size of C:\Windows.old (remove it with Disk Cleanup > Clean up system files).
+
+? turn off hibernation | delete hiberfil | disable hibernate
+powercfg /hibernate off; 'Hibernation is off; hiberfil.sys was removed.'
+= Turns hibernation off and frees the space of hiberfil.sys.
+! admin
+
+? turn on hibernation | enable hibernate
+powercfg /hibernate on; 'Hibernation is on.'
+= Turns hibernation on again.
+! admin
+
+? size of the downloads folder | how big is my downloads | downloads size
+Get-FolderSize -Path "$HOME\Downloads"
+= Adds up everything in Downloads.
+
+? what uses space in my user folder | biggest folders in my profile | folder sizes in my home folder
+Get-FolderSize -Path $HOME -Subfolders
+= Shows how much space each folder in your user folder takes.

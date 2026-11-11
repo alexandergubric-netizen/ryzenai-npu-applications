@@ -1,0 +1,252 @@
+# More everyday tasks: backups, network drives, web checks, world time, Windows features, developer tools, accounts.
+
+## Backups and copies
+
+? backup {src} with today's date | dated backup of {src} | zip {src} with the date | make a backup of {src}
+$src = Get-Item -LiteralPath "{{src}}"; $zip = Join-Path "{{dest}}" ('{0} {1:yyyy-MM-dd HHmm}.zip' -f $src.Name, (Get-Date)); Compress-Archive -Path "$($src.FullName)\*" -DestinationPath $zip; Get-Item $zip | Select-Object FullName, @{n='SizeMB';e={[math]::Round($_.Length/1MB,1)}}
+= Zips {src} into a file named with today's date and time, saved in {dest}.
+& src=. ; dest=$HOME\Documents
+
+? mirror {src} to {dest} | sync {src} to {dest} | keep {dest} in sync with {src}
+robocopy "{{src}}" "{{dest}}" /MIR /R:1 /W:1 /NFL /NDL /NP; if ($LASTEXITCODE -lt 8) { $global:LASTEXITCODE = 0; 'Done: {{dest}} now matches {{src}}.' }
+= Makes {dest} an exact copy of {src}: files that are not in {src} are DELETED from {dest}.
+
+? copy only new files from {src} to {dest} | incremental backup of {src} to {dest} | copy changed files from {src} to {dest}
+robocopy "{{src}}" "{{dest}}" /E /XO /R:1 /W:1 /NFL /NDL /NP; if ($LASTEXITCODE -lt 8) { $global:LASTEXITCODE = 0; 'Copied new and changed files.' }
+= Copies files from {src} that are new or newer than the copy in {dest}; nothing is deleted.
+
+? merge all {ext} files in {folder} into one | combine the {ext} files into one file | join text files
+Get-ChildItem -Path "{{folder}}\*" -File -Include {{ext}} | Sort-Object Name | Get-Content | Set-Content -Path "{{folder}}\merged.{{ext|raw}}"; Get-Item "{{folder}}\merged.{{ext|raw}}" | Select-Object FullName, Length
+= Joins every {ext} file in {folder} (in name order) into merged.{ext}.
+& folder=. ; ext=*.txt
+
+? what is in the recycle bin | recycle bin contents | deleted files | items in the recycle bin
+$b = (New-Object -ComObject Shell.Application).Namespace(10); $b.Items() | ForEach-Object { [pscustomobject]@{ Name = $_.Name; OriginalFolder = $b.GetDetailsOf($_, 1); Deleted = $b.GetDetailsOf($_, 2); Size = $b.GetDetailsOf($_, 3) } }
+= Lists what is in the Recycle Bin, where it came from and when it was deleted.
+
+? restore {file} from the recycle bin | undelete {file} | bring back {file}
+$b = (New-Object -ComObject Shell.Application).Namespace(10); $i = $b.Items() | Where-Object Name -like '{{file}}*' | Select-Object -First 1; if ($i) { $i.InvokeVerb('undelete'); "Restored $($i.Name)." } else { 'Not found in the Recycle Bin.' }
+= Puts {file} back where it was deleted from.
+
+? symbolic link from {src} to {dest} | create a symlink | link a folder
+New-Item -ItemType SymbolicLink -Path "{{src}}" -Target "{{dest}}"
+= Creates a link at {src} that points to {dest} (needs Developer Mode or admin).
+
+## Network drives and sharing
+
+? mapped network drives | list network drives | which drives are mapped
+Get-PSDrive -PSProvider FileSystem | Where-Object DisplayRoot | Select-Object Name, DisplayRoot, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+= Lists drive letters connected to network shares.
+
+? map a network drive {drive} to {path} | connect {path} as drive {drive}
+New-PSDrive -Name {{drive}} -PSProvider FileSystem -Root "{{folder}}" -Persist -Scope Global | Select-Object Name, DisplayRoot
+= Connects the network share as drive {drive}: (it stays after a restart).
+& drive=Z
+
+? disconnect network drive {drive} | remove mapped drive {drive}
+Remove-PSDrive -Name {{drive}} -Force -ErrorAction SilentlyContinue; net use "{{drive}}:" /delete /y 2>$null; 'Disconnected.'
+= Disconnects the network drive {drive}:.
+
+? share {folder} on the network | share this folder
+New-SmbShare -Name (Split-Path (Resolve-Path "{{folder}}").Path -Leaf) -Path (Resolve-Path "{{folder}}").Path -ReadAccess Everyone | Select-Object Name, Path
+= Shares {folder} on the network (read-only for everyone).
+! admin
+& folder=.
+
+? stop sharing {name} | remove the share {name}
+Remove-SmbShare -Name "{{name}}" -Force; 'Share removed.'
+= Stops sharing {name} (the folder itself stays).
+! admin
+
+? computers on my network by name | network computers | nas on my network
+Get-NetNeighbor -AddressFamily IPv4 | Where-Object State -in 'Reachable', 'Stale' | ForEach-Object { $n = try { [Net.Dns]::GetHostEntry($_.IPAddress).HostName } catch { '' }; [pscustomobject]@{ IP = $_.IPAddress; Name = $n } } | Where-Object Name
+= Lists devices on your network that have a name.
+
+## Web checks
+
+? website certificate of {host} | when does the ssl certificate of {host} expire | check https of {host}
+$c = [Net.Sockets.TcpClient]::new('{{host}}', 443); $s = [Net.Security.SslStream]::new($c.GetStream()); $s.AuthenticateAsClient('{{host}}'); $cert = [Security.Cryptography.X509Certificates.X509Certificate2]$s.RemoteCertificate; $c.Dispose(); [pscustomobject]@{ Site = '{{host}}'; Issuer = $cert.Issuer; Expires = $cert.NotAfter; DaysLeft = ($cert.NotAfter - (Get-Date)).Days }
+= Shows who issued the HTTPS certificate of {host} and when it expires.
+
+? title of the website {host} | what is on {host} | page title of {url}
+$u = if ('{{url}}' -ne '') { '{{url}}' } else { 'https://{{host}}' }; $r = Invoke-WebRequest -Uri $u -TimeoutSec 15; [pscustomobject]@{ Status = $r.StatusCode; Title = ([regex]::Match($r.Content, '<title[^>]*>([^<]*)')).Groups[1].Value.Trim(); SizeKB = [math]::Round($r.RawContentLength/1KB) }
+= Downloads the page and shows its status code and title.
+& url= ; host=example.com
+
+? response time of {host} | how fast does {host} load
+$t = Measure-Command { Invoke-WebRequest -Uri "https://{{host}}" -TimeoutSec 30 | Out-Null }; '{0} loaded in {1:N0} ms' -f '{{host}}', $t.TotalMilliseconds
+= Measures how long https://{host} takes to load.
+
+? weather | weather forecast | what is the weather | weather in {text}
+Invoke-RestMethod -Uri "https://wttr.in/$([uri]::EscapeDataString('{{text}}'))?format=3"
+= Current weather from wttr.in (needs internet).
+& text=
+
+## World time
+
+? what time is it in {tz} | time in {tz} | current time in {tz}
+'{0:HH:mm} on {0:dddd} in {1}' -f [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), '{{tz}}'), '{{tz}}'
+= The current time in the {tz} time zone.
+
+? convert {time} to {tz} time | what is {time} here in {tz}
+'{0:HH:mm} in {1}' -f [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date '{{time}}'), '{{tz}}'), '{{tz}}'
+= Converts {time} (your time) to the {tz} time zone.
+
+## Windows features
+
+? windows features | optional features | which windows features are on
+Get-WindowsOptionalFeature -Online | Where-Object State -eq 'Enabled' | Select-Object FeatureName | Sort-Object FeatureName
+= Lists the optional Windows features that are turned on.
+! admin
+
+? enable windows sandbox | turn on sandbox
+Enable-WindowsOptionalFeature -Online -FeatureName Containers-DisposableClientVM -All -NoRestart
+= Turns on Windows Sandbox (Pro editions; restart afterwards).
+! admin
+
+? install wsl | enable linux | install ubuntu
+wsl --install
+= Installs the Windows Subsystem for Linux with Ubuntu (restart when asked).
+! admin
+
+? is a restart pending | is windows waiting for a restart | pending reboot
+$keys = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending', 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'; if ($keys | Where-Object { Test-Path $_ }) { 'Yes - Windows is waiting for a restart.' } else { 'No restart is pending.' }
+= Tells you whether Windows is waiting for a restart (after updates).
+
+? is virtualization enabled | vt-x | svm enabled | hyper-v requirements
+Get-CimInstance Win32_Processor | Select-Object Name, VirtualizationFirmwareEnabled, VMMonitorModeExtensions
+= Shows whether CPU virtualization is turned on in the BIOS.
+
+? uefi or legacy bios | boot mode | is my pc uefi
+if (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State') { 'UEFI' } else { 'Legacy BIOS' }
+= Shows whether Windows booted in UEFI or legacy BIOS mode.
+
+? last windows update | when did windows last update
+Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 1 HotFixID, Description, InstalledOn
+= Shows the most recent Windows update.
+
+? installed fonts | list fonts | which fonts do I have
+Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts', 'HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts' -ErrorAction SilentlyContinue | ForEach-Object { $_.PSObject.Properties | Where-Object Name -notlike 'PS*' | ForEach-Object Name } | Sort-Object -Unique
+= Lists the installed fonts.
+
+? install the font {file} | add font {file}
+$f = Get-Item -LiteralPath "{{folder}}\{{file}}"; $dir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"; New-Item -ItemType Directory -Path $dir -Force | Out-Null; Copy-Item -LiteralPath $f.FullName -Destination $dir -Force; Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts' -Name "$($f.BaseName) (TrueType)" -Value (Join-Path $dir $f.Name); "Installed $($f.Name) for your user (restart open apps to see it)."
+% file=ttf,otf,ttc
+= Installs the font {file} for your user (no admin rights, no dialogs).
+& folder=.
+
+? keyboard layouts | switch keyboard layout | add keyboard language
+Start-Process "ms-settings:keyboard"
+= Opens keyboard settings (add or remove layouts there; switch with Win+Space).
+
+? default browser | which browser is the default
+(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice' -ErrorAction SilentlyContinue).ProgId
+= Shows which browser opens web links.
+
+? default apps | change default browser | change default app
+Start-Process "ms-settings:defaultapps"
+= Opens Default apps settings.
+
+## Accounts
+
+? change my password | change the password of {name}
+Start-Process "ms-settings:signinoptions"
+= Opens Sign-in options, where you change your password or PIN.
+
+? disable the account {name} | turn off the user {name}
+Disable-LocalUser -Name "{{name}}"; Get-LocalUser -Name "{{name}}" | Select-Object Name, Enabled
+= Disables the local account {name} (it can't sign in until enabled again).
+! admin
+
+? enable the account {name} | turn on the user {name}
+Enable-LocalUser -Name "{{name}}"; Get-LocalUser -Name "{{name}}" | Select-Object Name, Enabled
+= Enables the local account {name} again.
+! admin
+
+? groups of {name} | which groups am I in | my user groups
+whoami /groups /fo csv | ConvertFrom-Csv | Where-Object Type -eq 'Alias' | Select-Object 'Group Name'
+= Lists the local groups your account belongs to.
+
+## Developer tools
+
+? open vs code here | open this folder in vs code | code .
+code .
+= Opens the current folder in Visual Studio Code.
+
+? start a web server here | serve this folder over http | local web server
+Start-Process python -ArgumentList '-m', 'http.server', '8000' -WorkingDirectory (Get-Location).Path -WindowStyle Minimized; Start-Process 'http://localhost:8000'
+= Serves the current folder at http://localhost:8000 (close the minimized window to stop it).
+
+? create a python virtual environment | make a venv | new venv
+python -m venv .venv; '.venv created. Activate it with: .\.venv\Scripts\Activate.ps1'
+= Creates a Python virtual environment in .venv.
+
+? pip install {text} | install the python package {text}
+python -m pip install '{{text}}'
+= Installs the Python package {text}.
+
+? python packages | pip list | installed python packages
+python -m pip list
+= Lists installed Python packages.
+
+? git status | what changed in this repo
+git status --short --branch
+= Shows the branch and changed files of the Git repository here.
+
+? git pull | update this repo
+git pull
+= Gets the newest commits from the remote.
+
+? clone {url} | git clone {url}
+git clone '{{url}}'
+= Downloads the repository into a new folder here.
+
+? new powershell script {file} | create a script {file}
+New-Item -ItemType File -Path "{{folder}}\{{file}}" -Force | Out-Null; Set-Content -Path "{{folder}}\{{file}}" -Value "# {{file}}`n`n"; notepad "{{folder}}\{{file}}"
+= Creates {file} and opens it in Notepad.
+& folder=.
+
+? run the script {file} | execute {file}
+& "{{folder}}\{{file}}"
+= Runs {file} in Sensei's session.
+& folder=.
+
+? json from {url} | call the api {url} | get json from {url}
+Invoke-RestMethod -Uri '{{url}}' | ConvertTo-Json -Depth 6
+= Calls {url} and prints the JSON answer.
+
+## Alex's apps
+
+? open kaizen | start kaizen | kaizen 5s | tidy my pc with kaizen
+$l = @("$env:LOCALAPPDATA\Programs\Kaizen 5S\Kaizen.exe", "$([Environment]::GetFolderPath('Desktop'))\Kaizen 5S.lnk", "$([Environment]::GetFolderPath('Desktop'))\Kaizen.lnk") | Where-Object { Test-Path $_ } | Select-Object -First 1; if ($l) { Invoke-Item $l } else { 'Kaizen is not installed.' }
+= Opens Kaizen 5S, the PC tidying app.
+
+? open morph | start morph | convert a file with morph
+$l = @("$env:LOCALAPPDATA\Programs\Morph\Morph.exe", "$([Environment]::GetFolderPath('Desktop'))\Morph.lnk") | Where-Object { Test-Path $_ } | Select-Object -First 1; if ($l) { Invoke-Item $l } else { 'Morph is not installed.' }
+= Opens Morph, the file converter.
+
+? open washi | start washi | edit a pdf | pdf editor
+$l = @("$env:LOCALAPPDATA\Programs\Washi\Washi.exe", "$([Environment]::GetFolderPath('Desktop'))\Washi.lnk") | Where-Object { Test-Path $_ } | Select-Object -First 1; if ($l) { Invoke-Item $l } else { 'Washi is not installed.' }
+= Opens Washi, the PDF editor.
+
+? open tansu | start tansu | archive files with tansu
+$l = @("$env:LOCALAPPDATA\Programs\Tansu\Tansu.exe", "$([Environment]::GetFolderPath('Desktop'))\Tansu.lnk") | Where-Object { Test-Path $_ } | Select-Object -First 1; if ($l) { Invoke-Item $l } else { 'Tansu is not installed.' }
+= Opens Tansu, the archiver.
+
+? open muda | start muda | which processes waste resources
+$l = @("$env:LOCALAPPDATA\Programs\Muda\Muda.exe", "$([Environment]::GetFolderPath('Desktop'))\Muda.lnk") | Where-Object { Test-Path $_ } | Select-Object -First 1; if ($l) { Invoke-Item $l } else { 'Muda is not installed.' }
+= Opens Muda, the process waste analyser.
+
+? open tatami | start tatami | disk space map | what is filling my disk visually
+$l = @("$env:LOCALAPPDATA\Programs\Tatami\Tatami.exe", "$([Environment]::GetFolderPath('Desktop'))\Tatami.lnk") | Where-Object { Test-Path $_ } | Select-Object -First 1; if ($l) { Invoke-Item $l } else { 'Tatami is not installed.' }
+= Opens Tatami, the disk space map.
+
+## Any app by name
+
+? open {pkg} | start {pkg} | launch {pkg} | run the app {pkg}
+$q = '{{pkg}}'; $a = Get-StartApps | Where-Object Name -like "*$q*" | Sort-Object { $_.Name.Length } | Select-Object -First 1; if ($a) { Start-Process "shell:AppsFolder\$($a.AppID)"; "Opening $($a.Name)" } else { $l = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu", "$env:ProgramData\Microsoft\Windows\Start Menu", ([Environment]::GetFolderPath('Desktop')) -Recurse -Filter "*$q*.lnk" -ErrorAction SilentlyContinue | Select-Object -First 1; if ($l) { Invoke-Item $l.FullName; "Opening $($l.BaseName)" } else { "No app called $q found in the Start menu." } }
+= Finds "{pkg}" in the Start menu and opens it.
+
+? close {pkg} | quit {pkg}
+$p = Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and ($_.ProcessName -like '*{{pkg}}*' -or $_.MainWindowTitle -like '*{{pkg}}*') }; if ($p) { $p | ForEach-Object { [void]$_.CloseMainWindow(); "Asked $($_.ProcessName) to close." } } else { 'No open window matches "{{pkg}}".' }
+= Asks the program whose name or window title matches "{pkg}" to close normally.

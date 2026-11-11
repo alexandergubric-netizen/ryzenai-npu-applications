@@ -1,0 +1,157 @@
+# PowerShell itself, text and data helpers, FastFlowLM.
+
+## PowerShell
+
+? powershell version | which powershell | ps version | what version of powershell | version of powershell | what version of powershell do I have
+$PSVersionTable | Select-Object PSVersion, PSEdition, OS
+= Shows the PowerShell version.
+
+? command history | previous commands | what did I type before
+Get-Content (Get-PSReadLineOption).HistorySavePath -Tail 50
+= Shows the last 50 commands typed in PowerShell windows.
+
+? help for {text} | examples for {text} | explain {text} | get-help {text}
+Get-Help '{{text}}' -Examples
+= Shows usage examples for {text}. Run Update-Help once (as admin) for full offline help.
+
+? find a command for {text} | commands about {text} | cmdlets for {text}
+Get-Command -Name "*{{text}}*" -CommandType Cmdlet, Function | Select-Object Name, Source
+= Lists commands with "{text}" in their name.
+
+? sensei helpers | sensei commands | what can sensei do | extra commands
+Get-Command -Module SenseiTools | Select-Object Name, @{n='Syntax';e={(Get-Command $_.Name -Syntax).Trim()}}
+= Lists Sensei's own helper commands and their parameters.
+
+? edit my powershell profile | open my profile | powershell profile
+if (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force | Out-Null }; notepad $PROFILE
+= Creates your profile if needed and opens it in Notepad.
+
+? installed modules | powershell modules | which modules do I have
+Get-Module -ListAvailable | Sort-Object Name -Unique | Select-Object Name, Version
+= Lists PowerShell modules installed on this PC.
+
+? install the module {text} | install module {name}
+Install-Module -Name '{{text}}' -Scope CurrentUser -Force
+= Installs the module {text} from the PowerShell Gallery for your user.
+
+? update powershell | upgrade powershell
+winget upgrade --id Microsoft.PowerShell --exact --accept-source-agreements --accept-package-agreements --disable-interactivity
+= Updates PowerShell 7.
+
+? aliases | list aliases | what does {text} stand for
+Get-Alias | Select-Object Name, Definition
+= Lists command aliases (short names).
+
+? measure how long {text} takes | time the command {text}
+Measure-Command { {{text}} } | Select-Object TotalSeconds
+= Runs the command and reports how long it took.
+
+? clear the screen | cls | clear
+Clear-Host
+= Clears the output.
+
+## Text and data
+
+? base64 encode {text} | encode {text} in base64
+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('{{text}}'))
+= Encodes "{text}" as Base64.
+
+? base64 decode {text} | decode base64 {text}
+[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{{text}}'))
+= Decodes the Base64 text.
+
+? url encode {text} | escape {text} for a url
+[uri]::EscapeDataString('{{text}}')
+= URL-encodes "{text}".
+
+? uppercase {text} | {text} in capitals
+'{{text}}'.ToUpper()
+= "{text}" in capital letters.
+
+? lowercase {text} | {text} in small letters
+'{{text}}'.ToLower()
+= "{text}" in small letters.
+
+? length of {text} | how many characters in {text}
+'{{text}}'.Length
+= Number of characters in "{text}".
+
+? new guid | generate a uuid | random id
+New-Guid
+= Generates a random GUID.
+
+? random number | random number between 1 and {n} | roll a dice | pick a random number
+Get-Random -Minimum 1 -Maximum ({{n}} + 1)
+= A random whole number from 1 to {n}.
+& n=100
+
+? flip a coin | heads or tails
+@('Heads', 'Tails') | Get-Random
+= Heads or tails.
+
+? pretty print {file} | format the json {file} | show {file} nicely
+Get-Content -Path "{{folder}}\{{file}}" -Raw | ConvertFrom-Json | ConvertTo-Json -Depth 20
+= Prints the JSON in {file} indented.
+& folder=.
+
+? convert {file} to json | csv to json {file}
+$in = Get-Item -LiteralPath "{{folder}}\{{file}}"; $out = Join-Path $in.DirectoryName ($in.BaseName + '.json'); Import-Csv -LiteralPath $in.FullName | ConvertTo-Json -Depth 5 | Set-Content -Path $out; Get-Item $out | Select-Object FullName
+= Writes the rows of the CSV {file} as JSON next to it.
+& folder=.
+
+? open {file} as a table | show {file} as a table | view the csv {file}
+Import-Csv -Path "{{folder}}\{{file}}" | Format-Table -AutoSize
+= Shows the CSV {file} as a table.
+& folder=.
+
+? export processes to excel | save the process list to csv | export to csv
+Get-Process | Select-Object Name, Id, CPU, @{n='MemMB';e={[math]::Round($_.WorkingSet64/1MB)}} | Export-Csv -Path "$([Environment]::GetFolderPath('Desktop'))\processes.csv" -NoTypeInformation; Invoke-Item "$([Environment]::GetFolderPath('Desktop'))\processes.csv"
+= Saves the process list as processes.csv on your Desktop and opens it (Excel opens CSV files).
+
+? calculate {text} | compute {text} | math {text}
+[System.Data.DataTable]::new().Compute('{{text}}', $null)
+= Calculates {text} (arithmetic only: numbers, + - * / and brackets).
+
+## FastFlowLM and AI
+
+? fastflowlm models | flm models | which ai models are installed | my ai models
+flm list --filter installed
+= Lists the FastFlowLM models downloaded to this PC.
+
+? fastflowlm catalog | which models can I download | flm list | flm catalog
+flm list
+= Lists every FastFlowLM model (downloaded ones have a check mark).
+
+? download the model {model} | flm pull {model} | install the ai model {model}
+flm pull {{model}}
+= Downloads {model} for the NPU.
+
+? remove the model {model} | delete the ai model {model}
+flm remove {{model}}
+= Deletes the downloaded model {model}.
+
+? fastflowlm version | flm version
+flm version
+= Shows the FastFlowLM version.
+
+? chat with {model} | run {model} | talk to the model {model}
+flm run {{model}}
+= Opens an interactive chat with {model} (runs in a terminal window).
+
+## WSL and developer tools
+
+? wsl distributions | list linux distros | wsl list
+wsl --list --verbose
+= Lists installed WSL distributions and their state.
+
+? shut down wsl | stop wsl
+wsl --shutdown; 'WSL stopped.'
+= Stops all WSL distributions and the WSL virtual machine.
+
+? git version | is git installed
+git --version
+= Shows the installed Git version.
+
+? node version | is node installed | npm version
+node --version; npm --version
+= Shows the installed Node.js and npm versions.

@@ -1,0 +1,78 @@
+{
+  "recipes.py": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\recipes.py",
+    "sha256": "296f4b56debc7bae099b226e50c4a6e6b35bb42839f646a2617084fd4a3a20fb"
+  },
+  "slots.py": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\slots.py",
+    "sha256": "97003787f949df0c8526110ec5b463df49a86e2602eb48b2b2e21ae171f5e930"
+  },
+  "router.py": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\router.py",
+    "sha256": "12d70608a60f3be378af5fcad4e69bbbded7747f2ec6e7120edcb4346ec9fbcf"
+  },
+  "host.ps1": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\host.ps1",
+    "sha256": "42acbcb76b36abe8c72445e65133896e163c28d78ac587f4878858abb8c574a2"
+  },
+  "SenseiTools.psm1": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\SenseiTools.psm1",
+    "sha256": "d0e8c26e2ace29a15baee2dcdd5a40c5a8692abfcebfd00a005c1d0b66e4dce2"
+  },
+  "build_catalog.ps1": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\build_catalog.ps1",
+    "sha256": "ce12a45c5e1d93687594dce554458329457c13b3c1e86a756f6cdeffd79a39f7"
+  },
+  "knowledge/apps.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\apps.txt",
+    "sha256": "c494c234b93e3685ef75cd50e60fb7308fdb45ec69a485c6b962f0f61e18acd0"
+  },
+  "knowledge/control.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\control.txt",
+    "sha256": "9291947e6db4ebad0d592b617d926a2555096d497b2bceff517387059333043c"
+  },
+  "knowledge/disk.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\disk.txt",
+    "sha256": "687ba4c1a6c72fe3368b0135808c2e1d844f9b9020b7a54b24c29c6310f8c753"
+  },
+  "knowledge/entities.json": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\entities.json",
+    "sha256": "de0609f4d1bae2130dd9e85987c85153430d3009c1acd51e30011c0355cb788f"
+  },
+  "knowledge/extras.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\extras.txt",
+    "sha256": "a50c45958ea17cb42b42e75fdc8b4cec44776fd534c182e02569673bac2e3530"
+  },
+  "knowledge/files.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\files.txt",
+    "sha256": "2694237abf5c0e3ff6ecf3904f4457fbcac847d474dbb0a02653edad416c0738"
+  },
+  "knowledge/media.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\media.txt",
+    "sha256": "864020820a34219dca76d848b923de35d1771479d6d9e60ee42fb85f70346458"
+  },
+  "knowledge/network.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\network.txt",
+    "sha256": "d9b4e34bb38c673dcc5f9206aaf9579038dd0d4064d01423faae2bd9853f1d69"
+  },
+  "knowledge/powershell.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\powershell.txt",
+    "sha256": "803d91825bf295f309dda941e56043c9bbb43274c4b4e1b39ca99877689da0c2"
+  },
+  "knowledge/security.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\security.txt",
+    "sha256": "29e7ce7836d5411b965700fe4854194ae51d4084b2f5c1a84639824533486301"
+  },
+  "knowledge/system.txt": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\core\\knowledge\\system.txt",
+    "sha256": "28c4cd649f075a4678c996cbcbd14c979a5b155bbeb490a644c122d9819a4a76"
+  },
+  "catalog.json": {
+    "source": "%LOCALAPPDATA%\\Sensei\\catalog.json",
+    "sha256": "8748bab19eb47f0bad63d4a435ba428c5e5a49951243b519e73a97fc23c84944"
+  },
+  "LICENSE": {
+    "source": "%LOCALAPPDATA%\\Programs\\Sensei\\app\\LICENSE",
+    "sha256": "55e31e0a26794ff3f90a1b9170cacc8137aa6077594a1b13e850bc475c01c067"
+  }
+}

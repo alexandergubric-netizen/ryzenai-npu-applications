@@ -1,0 +1,46 @@
+Tsubasa bundles these open-source components. Their own licence files are in runtime\licenses (Windows installer)
+or inside the app bundle's Python (macOS); the full text of the GNU Affero General Public License v3.0 is in
+licenses\AGPL-3.0.txt.
+
+LICENCE OF TSUBASA AS DISTRIBUTED
+  Tsubasa's own code (app.py, core\, web\, tools\, installer\, mac\, library\) is MIT-licensed (LICENSE).
+  © 2026 Alexander Gubric. The installers also contain PyMuPDF/MuPDF (AGPL-3.0), which Tsubasa's document worker
+  (tools\file_worker.py, a separate process) uses to read and write PDFs. Tsubasa as distributed in those installers
+  is therefore covered by the GNU Affero General Public License v3.0 (licenses\AGPL-3.0.txt). Its complete source
+  is the .py, .js, .css, .html, .ps1 and .psm1 files in the install folder, and the public repository
+  https://github.com/alexandergubric-netizen/ryzenai-npu-applications.
+
+  Component                    Version     Licence                       Source of exactly this version
+  Python                       3.12.10     PSF License                   https://www.python.org/downloads/release/python-31210/
+  PyMuPDF / MuPDF              1.27.2.2    AGPL-3.0 (or Artifex          https://github.com/pymupdf/PyMuPDF/releases/tag/1.27.2.2
+                                           commercial licence)
+  python-docx                  1.2.0       MIT                           https://github.com/python-openxml/python-docx
+  openpyxl                     3.1.5       MIT                           https://openpyxl.readthedocs.io
+  lxml (libxml2, libxslt)      6.1.0       BSD-3-Clause (MIT for the     https://lxml.de
+                                           bundled C libraries)
+  defusedxml                   0.7.1       PSF License                   https://github.com/tiran/defusedxml
+  typing_extensions            4.15.0      PSF License                   https://github.com/python/typing_extensions
+
+  macOS build only (installed by mac/build_app.sh from PyPI; versions are whatever pip resolves on the build day and
+  are listed in the app bundle's Python site-packages):
+  mlx, mlx-lm                              MIT                           https://github.com/ml-explore
+  transformers, huggingface_hub,           Apache-2.0                    https://github.com/huggingface
+    tokenizers, safetensors
+  NumPy                                    BSD-3-Clause                  https://numpy.org
+
+  Vendored source (unchanged copies with a source header; see vendor\provenance.json):
+  vendor\sensei                Sensei 2.0.3, the author's own PowerShell helper (MIT)
+  vendor\washi, vendor\phase3  modules from the author's Washi and Morph apps (MIT)
+
+WRITTEN OFFER
+  For three years from the date you received Tsubasa, Alexander Gubric will give anyone who asks a copy of the
+  complete corresponding source code of the AGPL component above, in the exact version bundled, for no more than the
+  cost of providing it. Ask through the issues page of the repository above. The links above point to the same
+  sources.
+
+Not bundled (separate programs Tsubasa talks to when they are installed):
+  FastFlowLM (the NPU engine on Windows) and the language models you download with it or from Hugging Face, each
+  under its own licence; Microsoft Edge or Google Chrome for the app window; PowerShell 7; ffmpeg; a
+  stable-diffusion.cpp server and image model for the optional Images mode.
+
+This is a technical summary, not legal advice.

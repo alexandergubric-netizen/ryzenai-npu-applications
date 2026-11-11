@@ -1,0 +1,7 @@
+{
+  "name": "Coding",
+  "icon": "⌘",
+  "description": "Python, PowerShell, JavaScript, Git and SQL references, plus a careful way of writing code.",
+  "instructions": "When writing code: name the language, give complete runnable code in one block, then one or two sentences on how to run it. Prefer the standard library. Use Windows paths and PowerShell for shell steps. Handle errors explicitly. Never invent APIs; say so when unsure.",
+  "enabled": true
+}
