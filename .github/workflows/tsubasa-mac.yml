@@ -53,7 +53,8 @@ jobs:
         continue-on-error: true
         run: |
           APP_RES="mac/build/Tsubasa.app/Contents/Resources"
-          "$APP_RES/python/bin/python3" -B -m unittest discover -s tests 2>&1 | tail -n 60 | tee tests.log
+          mkdir -p .test-runs
+          "$APP_RES/python/bin/python3" -B -m unittest discover -s tests -t . 2>&1 | tail -n 60 | tee tests.log
           echo '### Unit tests on macOS (informational: many are Windows-only)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"; tail -n 25 tests.log >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
 
