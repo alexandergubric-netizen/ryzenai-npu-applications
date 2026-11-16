@@ -67,9 +67,9 @@ namespace Postura
                 var installed = ai ? new List<string>((string[])hw["models"]) : new List<string>();
                 if (string.IsNullOrEmpty(model) || !installed.Contains(model)) model = Hardware.Recommended(engine);
 
-                var s = Add("app", "Installing Postura");
+                var s = Add("app", Program.Packaged ? "Setting up Postura" : "Installing Postura");
                 Setup.Install(desktop, startMenu, autostart, "", "");   // AI settings are written only once the engine works
-                s.State = "done"; s.Detail = Setup.InstallDir;
+                s.State = "done"; s.Detail = Program.Packaged ? "" : Setup.InstallDir;
 
                 if (engine != "" && NoEngineInstall && !(bool)hw["installed"])
                     throw new AiFailed("The AI engine isn't installed, and --ai-no-engine skips installing it.");

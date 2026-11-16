@@ -35,7 +35,7 @@ namespace Postura
 
         public static bool IsInstalledCopy
         {
-            get { return string.Equals(Path.GetFullPath(Self), Path.GetFullPath(InstalledExe), StringComparison.OrdinalIgnoreCase); }
+            get { return Program.Packaged || string.Equals(Path.GetFullPath(Self), Path.GetFullPath(InstalledExe), StringComparison.OrdinalIgnoreCase); }
         }
 
         public static string InstalledVersion()
@@ -66,8 +66,82 @@ namespace Postura
                 { "version", Program.Version }, { "dir", InstallDir }, { "installed", InstalledVersion() },
                 { "installedName", InstalledEdition() }, { "displayName", Edition.DisplayName },
                 { "edition", Edition.Id }, { "assistant", Edition.Assistant }, { "org", Edition.Org },
-                { "edge", Program.EdgePath() != null }, { "test", TestDir != null }, { "ai", Hardware.Check() }
+                { "edge", Program.EdgePath() != null }, { "test", TestDir != null }, { "ai", Hardware.Check() },
+                { "packaged", Program.Packaged }, { "legacy", Program.Packaged && LegacyInstalled() },
+                { "startupState", PackagedApp.StartupState() }, { "flmPage", Hardware.FlmPage }
             };
+        }
+
+        // ---------------------------------------------------------------- MSIX package
+
+        static string DoneFlag { get { return Path.Combine(Store.DataDir, "package-setup.done"); } }
+        public static bool PackagedDone { get { return File.Exists(DoneFlag); } }
+
+        static string LocalApp { get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData); } }
+        static string LegacyDir { get { return Path.Combine(LocalApp, @"Programs\Postura"); } }
+        static string LegacyExe { get { return Path.Combine(LegacyDir, "Postura.exe"); } }
+
+        /// <summary>Is the old per-user .exe install (or what is left of it: its Apps entry, its postura: link) still on this PC?</summary>
+        public static bool LegacyInstalled()
+        {
+            if (File.Exists(LegacyExe)) return true;
+            try
+            {
+                using (var k = Registry.CurrentUser.OpenSubKey(UninstallKey)) if (k != null) return true;
+                using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + Toast.Scheme + @"\shell\open\command"))
+                {
+                    var cmd = k == null ? null : k.GetValue("") as string;
+                    if (cmd != null && cmd.IndexOf(LegacyDir, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        /// <summary>The welcome page of the MSIX build: nothing to copy, Windows installed the app. Chooses "Start with
+        /// Windows" (the StartupTask), stores the AI choice and the done flag. An older .exe install is never touched: the
+        /// page tells the user to remove it in Settings → Apps.</summary>
+        static string InstallPackaged(bool autostart, string aiEngine, string aiModel)
+        {
+            if (TestDir == null)
+            {
+                // a running tray app would write its own copy of the settings over ours: ask it to save and quit first
+                try { using (var ev = EventWaitHandle.OpenExisting(Program.QuitEventName)) { ev.Set(); Thread.Sleep(2000); } } catch { }
+            }
+            if (aiEngine != null) SaveAi(aiEngine, aiModel ?? "");
+            if (TestDir != null)
+            {
+                File.WriteAllText(Path.Combine(Store.DataDir, "setup-test.txt"), "packaged autostart=" + autostart);
+                return Program.SelfExe;
+            }
+            SetAutostart(autostart);
+            try
+            {
+                Store.Load();
+                Store.SetSettings(new Dictionary<string, object> { { "autostart", autostart } });
+                Store.Save(true);
+            }
+            catch { }
+            File.WriteAllText(DoneFlag, Program.Version);
+            return Program.SelfExe;
+        }
+
+        /// <summary>Windows' own "Installed apps" page, where the user removes an older .exe install of Postura.</summary>
+        public static void OpenAppsSettings()
+        {
+            try { Process.Start(new ProcessStartInfo("ms-settings:appsfeatures") { UseShellExecute = true }); } catch { }
+        }
+
+        /// <summary>Delete settings, break history and the window profile, then quit. For use before uninstalling the
+        /// package, which cannot clean up after itself.</summary>
+        public static void DeleteData()
+        {
+            PackagedApp.SetStartup(false);
+            string dir = Store.DataDir;
+            string cmd = "/c for /l %i in (1,1,6) do (ping 127.0.0.1 -n 3 >nul & rmdir /s /q \"" + dir + "\" 2>nul)";
+            Process.Start(new ProcessStartInfo("cmd.exe", cmd) { CreateNoWindow = true, UseShellExecute = false, WorkingDirectory = Path.GetTempPath() });
+            Store.Discard();    // no more saving into the folder that is being deleted
+            App.OnUi(App.Quit);
         }
 
         /// <summary>
@@ -76,6 +150,7 @@ namespace Postura
         /// </summary>
         public static string Install(bool desktop, bool startMenu, bool autostart, string aiEngine = null, string aiModel = null)
         {
+            if (Program.Packaged) return InstallPackaged(autostart, aiEngine, aiModel);
             string dir = InstallDir, exe = InstalledExe;
             Directory.CreateDirectory(dir);
             CloseRunning();
@@ -141,6 +216,7 @@ namespace Postura
 
         public static bool AutostartEnabled()
         {
+            if (Program.Packaged) return PackagedApp.IsEnabled(PackagedApp.StartupState());
             try
             {
                 using (var k = Registry.CurrentUser.OpenSubKey(RunKey))
@@ -152,6 +228,7 @@ namespace Postura
         /// <summary>Start in the tray at sign-in (only for the installed copy, so a dev build never registers).</summary>
         public static void SetAutostart(bool on, string exe = null)
         {
+            if (Program.Packaged) { PackagedApp.SetStartup(on); return; }
             exe = exe ?? (IsInstalledCopy ? InstalledExe : null);
             try
             {
@@ -205,6 +282,7 @@ namespace Postura
 
         public static void Launch()
         {
+            if (Program.Packaged) { Process.Start(new ProcessStartInfo(Program.SelfExe) { UseShellExecute = false, WorkingDirectory = Path.GetTempPath() }); return; }
             Process.Start(new ProcessStartInfo(InstalledExe) { UseShellExecute = false, WorkingDirectory = InstallDir });
         }
 

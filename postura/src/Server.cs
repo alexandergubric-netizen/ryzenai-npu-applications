@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Reflection;
@@ -163,6 +164,7 @@ namespace Postura
                         }
                     case "setup-progress": Json(res, 200, AiInstall.Progress()); return;
                     case "setup-launch": Setup.Launch(); Ok(res); return;
+                    case "setup-apps-settings": Setup.OpenAppsSettings(); Ok(res); return;
                 }
                 Json(res, 404, new Dictionary<string, object> { { "error", "Not available in setup" } });
                 return;
@@ -186,7 +188,7 @@ namespace Postura
                 case "ui": Store.SetUi(Body(req)); Ok(res); return;
                 case "eye-now": App.OnUi(App.StartEyeBreak); Ok(res); return;
                 case "eye-done": App.OnUi(() => App.Reminder.EyeBreakDone()); Ok(res); return;
-                case "snooze": App.OnUi(() => App.Reminder.Snooze(IntArg(Body(req), "seconds", 300))); Ok(res); return;
+                case "snooze": App.OnUi(() => App.Reminder.Snooze(IntArg(Body(req), "seconds", App.Reminder.SnoozeSec))); Ok(res); return;
                 case "pause": { int m = IntArg(Body(req), "minutes", 60); App.OnUi(() => App.Pause(m)); Ok(res); return; }
                 case "test-notify":
                     {
@@ -197,7 +199,27 @@ namespace Postura
                     }
                 case "notify-status": Json(res, 200, Toast.Status()); return;
                 case "notify-settings": Toast.OpenWindowsSettings(); Ok(res); return;
-                case "test-move": App.OnUi(App.MoveDue); Ok(res); return;
+                case "startup-settings":     // Windows' own switch for apps that start with Windows
+                    try { Process.Start(new ProcessStartInfo("ms-settings:startupapps") { UseShellExecute = true }); } catch { }
+                    Ok(res); return;
+                case "ai-setup":             // packaged: the welcome page again, to set up the AI assistant later
+                    if (!Program.Packaged) { Json(res, 400, new Dictionary<string, object> { { "error", "Run the Postura installer again to set up the assistant" } }); return; }
+                    Process.Start(new ProcessStartInfo(Program.SelfExe, "--setup") { UseShellExecute = false, WorkingDirectory = Path.GetTempPath() });
+                    Ok(res); return;
+                case "delete-data":          // packaged: before uninstalling, since Windows keeps an app's data
+                    if (!Program.Packaged) { Json(res, 400, new Dictionary<string, object> { { "error", "Only in the Windows app version" } }); return; }
+                    Ok(res);
+                    Setup.DeleteData();
+                    return;
+                case "test-move":
+                    {
+                        string kind = App.Reminder.SitStand ? "stand" : "move";
+                        string shown = App.OnUiWait(() => App.MoveDue(kind));
+                        Json(res, 200, new Dictionary<string, object> { { "shown", shown } });
+                        return;
+                    }
+                case "move-done": App.OnUi(() => App.Reminder.MoveDone()); Ok(res); return;
+                case "stretch-done": App.OnUi(() => App.Reminder.StretchDone()); Ok(res); return;
                 case "ai-warm": Ai.Ensure(); Json(res, 200, App.AiState()); return;
                 case "ai-models":
                     Json(res, 200, new Dictionary<string, object> {

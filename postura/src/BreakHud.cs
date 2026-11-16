@@ -20,7 +20,14 @@ namespace Postura
         DateTime start = DateTime.Now;
         DateTime doneAt = DateTime.MinValue;
         bool prompting;                        // reminder mode: asks first, the countdown starts on click or when you look away
+        readonly string kind;                  // "eye", or a move card without a countdown: "move", "stand", "sit"
+        readonly int minutes;                  // move cards: the minutes named in the text
+        bool Eye { get { return kind == "eye"; } }
+        public bool IsEye { get { return Eye; } }
+        /// <summary>Move cards: "primary" (Show stretches / I'm standing / OK) or "secondary" (Done / Snooze).</summary>
+        public event Action<string> Picked;
         readonly Timer anim = new Timer { Interval = 33 };
+        Screen target;
         float scale = 1f;
         bool dark, hoverClose;
         string hoverLink;
@@ -29,16 +36,34 @@ namespace Postura
         public event Action Completed, Skipped, Snoozed;
 
         // clickable texts of the prompt (logical units, scaled when hit-testing)
-        static readonly RectangleF StartLink = new RectangleF(134, 92, 86, 22), SnoozeLink = new RectangleF(226, 92, 100, 22);
+        RectangleF StartLink = new RectangleF(134, 92, 86, 22), SnoozeLink = new RectangleF(226, 92, 100, 22);
+        string link1 = "Start timer", link2 = "";
         Rectangle Px(RectangleF r) { return new Rectangle((int)(r.X * scale), (int)(r.Y * scale), (int)(r.Width * scale), (int)(r.Height * scale)); }
 
         // palette
         Color bg, text, sub, track, ring, sky1, sky2, sun, hillFar, hillNear, tree;
 
-        public BreakHud(int seconds, bool prompt = false)
+        public BreakHud(int seconds, bool prompt = false, string kind = "eye", int minutes = 0)
         {
             this.seconds = seconds;
-            prompting = prompt;
+            this.kind = kind;
+            this.minutes = minutes;
+            prompting = prompt || kind != "eye";
+            string snooze = "Snooze " + Store.Int("snoozeMinutes") + " min";
+            link2 = snooze;
+            if (kind == "move") { link1 = "Show stretches"; link2 = "Done"; }
+            else if (kind == "stand") link1 = "I'm standing";
+            else if (kind == "sit") { link1 = "OK"; link2 = ""; }
+            // the two clickable texts sit side by side, as wide as their words
+            using (var g = Graphics.FromHwnd(IntPtr.Zero))
+            {
+                float w1 = g.MeasureString(link1, fHint).Width + 4, w2 = link2 == "" ? 0 : g.MeasureString(link2, fHint).Width + 4;
+                StartLink = new RectangleF(134, 92, w1, 22);
+                SnoozeLink = new RectangleF(134 + w1 + 6, 92, w2, 22);
+            }
+            // on the screen the person is working on (where the mouse pointer is), not always the main one
+            try { target = Screen.FromPoint(Cursor.Position); } catch { target = Screen.PrimaryScreen; }
+            Location = target.WorkingArea.Location;   // the window is created there, so it gets that screen's scaling
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.Manual;
@@ -53,9 +78,9 @@ namespace Postura
             MouseMove += (s, e) =>
             {
                 bool h = CloseRect().Contains(e.Location);
-                string link = !prompting ? null : Px(StartLink).Contains(e.Location) ? "start" : Px(SnoozeLink).Contains(e.Location) ? "snooze" : null;
+                string link = !prompting ? null : Px(StartLink).Contains(e.Location) ? "start" : link2 != "" && Px(SnoozeLink).Contains(e.Location) ? "snooze" : null;
                 if (h != hoverClose || link != hoverLink) { hoverClose = h; hoverLink = link; Invalidate(); }
-                Cursor = h || prompting ? Cursors.Hand : Cursors.Default;
+                Cursor = h || (prompting && (Eye || link != null)) ? Cursors.Hand : Cursors.Default;
             };
             MouseClick += (s, e) =>
             {
@@ -64,6 +89,13 @@ namespace Postura
                 {
                     Close();
                     if (!finished && Skipped != null) Skipped();
+                }
+                else if (prompting && !Eye)
+                {
+                    string pick = Px(StartLink).Contains(e.Location) ? "primary" : link2 != "" && Px(SnoozeLink).Contains(e.Location) ? "secondary" : null;
+                    if (pick == null) return;
+                    Close();
+                    if (Picked != null) Picked(pick);
                 }
                 else if (prompting && Px(SnoozeLink).Contains(e.Location))
                 {
@@ -105,7 +137,7 @@ namespace Postura
             try { scale = Native.GetDpiForWindow(Handle) / 96f; } catch { scale = 1f; }
             if (scale < 1) scale = 1;
             Native.RoundCorners(Handle);
-            var wa = Screen.PrimaryScreen.WorkingArea;
+            var wa = (target ?? Screen.PrimaryScreen).WorkingArea;
             int w = (int)(W * scale), h = (int)(H * scale), m = (int)(16 * scale);
             Bounds = new Rectangle(wa.Right - w - m, wa.Bottom - h - m, w, h);
         }
@@ -139,6 +171,12 @@ namespace Postura
         {
             double shownFor = (DateTime.Now - shown).TotalSeconds;
             if (Opacity < 1 && doneAt == DateTime.MinValue) Opacity = Math.Min(1, shownFor / 0.25);
+            if (prompting && !Eye)
+            {
+                if (shownFor > PromptTimeout) { Close(); return; }   // a move card just leaves; nothing is counted
+                Invalidate();
+                return;
+            }
             if (prompting)
             {
                 // stopped typing to look away? then the break has started: a 3 s pause after the card appeared,
@@ -215,7 +253,23 @@ namespace Postura
             {
                 float x = 134, w = 200;
                 var sf = new StringFormat { Trimming = StringTrimming.EllipsisWord };
-                if (prompting)
+                if (prompting && !Eye)
+                {
+                    string title = kind == "stand" ? "Time to stand" : kind == "sit" ? "Time to sit again" : "Time to move";
+                    string body = kind == "stand" ? "You've sat for " + minutes + " min. Raise your desk and stand for a while."
+                        : kind == "sit" ? "You've stood for " + minutes + " min. Sit down, back against the chair."
+                        : minutes + " min at the screen. Stand up, stretch or walk a little.";
+                    g.DrawString(title, fTitle, bText, x, 22);
+                    g.DrawString(body, fSub, bSub, new RectangleF(x, 49, w, 40), sf);
+                    using (var bLink = new SolidBrush(ring))
+                    using (var fLink = new Font(fHint, hoverLink == "start" ? FontStyle.Bold | FontStyle.Underline : FontStyle.Bold))
+                    using (var fLink2 = new Font(fHint, hoverLink == "snooze" ? FontStyle.Bold | FontStyle.Underline : FontStyle.Bold))
+                    {
+                        g.DrawString(link1, fLink, bLink, StartLink.X, StartLink.Y + 2);
+                        if (link2 != "") g.DrawString(link2, fLink2, bSub, SnoozeLink.X, SnoozeLink.Y + 2);
+                    }
+                }
+                else if (prompting)
                 {
                     g.DrawString("Time to rest your eyes", fTitle, bText, x, 22);
                     g.DrawString("Look 6 m (20 ft) away for " + seconds + " s.", fSub, bSub, x, 49);
@@ -225,7 +279,7 @@ namespace Postura
                     using (var fLink2 = new Font(fHint, hoverLink == "snooze" ? FontStyle.Bold | FontStyle.Underline : FontStyle.Bold))
                     {
                         g.DrawString("Start timer", fLink, bLink, StartLink.X, StartLink.Y + 2);
-                        g.DrawString("Snooze 5 min", fLink2, bSub, SnoozeLink.X, SnoozeLink.Y + 2);
+                        g.DrawString(link2, fLink2, bSub, SnoozeLink.X, SnoozeLink.Y + 2);
                     }
                 }
                 else if (!done)
@@ -252,7 +306,17 @@ namespace Postura
             float frac = done ? 1f : prompting ? 0f : (float)Math.Min(1, t / seconds);
             using (var pRing = new Pen(ring, 6f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
                 if (frac > 0.002f) g.DrawArc(pRing, rr, -90, 360 * frac);
-            if (prompting)
+            if (prompting && !Eye)
+            {
+                // an arrow inside the ring: up = get up, down = sit down
+                float dir = kind == "sit" ? 1 : -1;
+                using (var p = new Pen(ring, 5f) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+                {
+                    g.DrawLine(p, cx, cy - 11 * dir, cx, cy + 11 * dir);
+                    g.DrawLines(p, new[] { new PointF(cx - 9, cy + 2 * dir), new PointF(cx, cy + 11 * dir), new PointF(cx + 9, cy + 2 * dir) });
+                }
+            }
+            else if (prompting)
             {
                 // a play button inside the ring
                 using (var b = new SolidBrush(ring))

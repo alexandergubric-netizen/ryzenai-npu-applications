@@ -11,21 +11,21 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Postura - healthy posture and 20-20-20 eye breaks")]
 [assembly: AssemblyCompany("Alexander Gubric")]
 [assembly: AssemblyCopyright("© 2026 Alexander Gubric · MIT License")]
-[assembly: AssemblyVersion("1.0.5.0")]
-[assembly: AssemblyFileVersion("1.0.5.0")]
-[assembly: AssemblyInformationalVersion("1.0.5")]
+[assembly: AssemblyVersion("1.0.7.0")]
+[assembly: AssemblyFileVersion("1.0.7.0")]
+[assembly: AssemblyInformationalVersion("1.0.7")]
 
 namespace Postura
 {
     static class Program
     {
-        public const string Version = "1.0.5";
+        public const string Version = "1.0.7";
         public const int DefaultPort = 52697;
         public const int SetupPort = 52710;
         public static string OpenEventName { get { return @"Local\Postura-Open-" + InstanceKey; } }
         public static string QuitEventName { get { return @"Local\Postura-Quit-" + InstanceKey; } }
         /// <summary>Things a notification button may ask for (anything else in a postura: link just opens the window).</summary>
-        public static readonly string[] Actions = { "open", "eye-start", "eye-snooze", "move-open", "move-done" };
+        public static readonly string[] Actions = { "open", "eye-start", "eye-snooze", "move-open", "move-done", "move-snooze", "noop" };
         public static string ActionEventName(string action) { return @"Local\Postura-Act-" + action + "-" + InstanceKey; }
 
         /// <summary>One instance per user; a test copy with its own POSTURA_HOME counts as a separate instance.</summary>
@@ -35,6 +35,36 @@ namespace Postura
             {
                 string home = Environment.GetEnvironmentVariable("POSTURA_HOME");
                 return Environment.UserName + (string.IsNullOrEmpty(home) ? "" : "-" + home.ToLowerInvariant().GetHashCode().ToString("x"));
+            }
+        }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int GetCurrentPackageFullName(ref int length, System.Text.StringBuilder name);
+
+        static bool? packaged;
+        /// <summary>True when running from the MSIX package (the package does its own install, shortcuts, sign-in start and uninstall).</summary>
+        public static bool Packaged
+        {
+            get
+            {
+                if (packaged == null)
+                {
+                    try { int len = 0; packaged = GetCurrentPackageFullName(ref len, null) != 15700; }   // APPMODEL_ERROR_NO_PACKAGE
+                    catch (EntryPointNotFoundException) { packaged = false; }
+                }
+                return packaged.Value;
+            }
+        }
+
+        /// <summary>The exe to start again. Packaged: the postura.exe app execution alias (the package folder changes with every version).</summary>
+        public static string SelfExe
+        {
+            get
+            {
+                string self = Process.GetCurrentProcess().MainModule.FileName;
+                if (!Packaged) return self;
+                string alias = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\WindowsApps\postura.exe");
+                return File.Exists(alias) ? alias : self;
             }
         }
 
@@ -48,6 +78,11 @@ namespace Postura
         {
             try
             {
+                if ((args.Contains("--uninstall") || args.Contains("--install")) && Packaged)
+                {
+                    Console.Error.WriteLine("Postura is installed as a Windows app (MSIX). Add or remove it in Settings > Apps.");
+                    return 2;
+                }
                 if (args.Contains("--uninstall")) return Setup.Uninstall(args.Contains("--quiet"));
                 if (args.Contains("--install"))
                 {
@@ -71,7 +106,7 @@ namespace Postura
                     // shows only the break timer (for screenshots and tests)
                     Store.Load();
                     Application.EnableVisualStyles();
-                    var h = new BreakHud(Math.Max(3, Arg(args, "--seconds", 20)), args.Contains("--prompt"));
+                    var h = new BreakHud(Math.Max(3, Arg(args, "--seconds", 20)), args.Contains("--prompt"), ArgS(args, "--kind") ?? "eye", 45);
                     h.FormClosed += (s, e) => Application.ExitThread();
                     string png = ArgS(args, "--png");
                     if (png != null)
@@ -105,7 +140,12 @@ namespace Postura
                     action = link.Substring(Toast.Scheme.Length + 1).Trim('/', ' ').ToLowerInvariant();
                     if (!Actions.Contains(action)) action = "open";
                 }
-                bool tray = args.Contains("--tray") || (action != null && action != "open" && action != "move-open");
+                // MSIX: the first start shows the welcome page (assistant, start with Windows, leftovers of the old .exe install)
+                if (Packaged && action == null && !args.Contains("--tray") && !args.Contains("--no-window") && !Setup.PackagedDone) return RunSetup(args);
+
+                // started by Windows at sign-in: wait in the tray, no window
+                bool tray = args.Contains("--tray") || (action != null && action != "open" && action != "move-open") ||
+                            (action == null && PackagedApp.StartedAtSignIn());
                 bool created;
                 using (var mutex = new Mutex(true, @"Local\Postura-App-" + InstanceKey, out created))
                 {

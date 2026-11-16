@@ -19,7 +19,7 @@ export default {
             <div class="item"><div class="t"><b>Move reminders</b><small>Stand up and stretch</small></div><button class="btn" data-go="move">Open</button></div>
           </div>
           <div class="card tip"><div class="ti" style="--c:var(--ok)">${icon('shield')}</div><div><h3>Private and offline</h3>
-            <p class="muted">Postura never connects to the internet. There is no account and no tracking. The optional AI assistant runs on this PC’s own processor. Settings and break counts stay on this PC in <code>%LOCALAPPDATA%\\Postura</code>. The window is a local page served only to this computer.</p></div></div>
+            <p class="muted">Postura sends nothing over the internet: no account, no tracking. The only download is the optional AI assistant’s engine and model, fetched once when you set it up; the assistant then runs on this PC’s own processor. Settings and break counts stay on this PC in <code>%LOCALAPPDATA%\\Postura</code>. The window is a local page served only to this computer.</p></div></div>
         </div>
         <div class="card" style="text-align:center">
           <div style="width:96px;height:96px;margin:8px auto 10px">${logoSVG()}</div>
@@ -43,16 +43,27 @@ export default {
     root.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
     let lastKey = '';
     const unsub = onState(st => {
-      const s = st.settings, ai = st.ai || {}, key = JSON.stringify([s.autostart, s.theme, s.motion, st.installed, st.autostartActual, ai.enabled, ai.available, ai.state]);
+      const s = st.settings, ai = st.ai || {}, key = JSON.stringify([s.autostart, s.theme, s.motion, st.installed, st.autostartActual, st.startupState, ai.enabled, ai.available, ai.state]);
       if (key === lastKey) return;
       lastKey = key;
+      const blocked = st.startupState === 'DisabledByUser' || st.startupState === 'DisabledByPolicy';   // Windows app: Task Manager / policy
       $('#gen').innerHTML = `
-        <div class="item"><div class="t"><b>Start with Windows</b><small>${st.installed ? 'Postura waits quietly in the notification area to remind you' : 'Available once Postura is installed'}</small></div>${toggleHTML('gAuto', st.installed ? st.autostartActual : false)}</div>
+        <div class="item"><div class="t"><b>Start with Windows</b><small>${blocked ? 'Windows has this switched off for Postura. Turn it on in Settings → Apps → Startup.' : st.installed ? 'Postura waits quietly in the notification area to remind you' : 'Available once Postura is installed'}</small></div>${blocked ? '<button class="btn" id="gStartupOpen">Open Startup settings</button>' : toggleHTML('gAuto', st.installed ? st.autostartActual : false)}</div>
         <div class="item"><div class="t"><b>Appearance</b></div>${segHTML('gTheme', [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}</div>
-        <div class="item"><div class="t"><b>Animations</b><small>Reduced turns off moving illustrations</small></div>${segHTML('gMotion', [['full', 'Full'], ['reduced', 'Reduced']], s.motion)}</div>`;
+        <div class="item"><div class="t"><b>Animations</b><small>Reduced turns off moving illustrations</small></div>${segHTML('gMotion', [['full', 'Full'], ['reduced', 'Reduced']], s.motion)}</div>
+        ${st.packaged ? `<div class="item"><div class="t"><b>Delete my data</b><small>Removes your settings and break history, then closes Postura. Do this before uninstalling it in Settings → Apps: Windows keeps an app's data when the app is removed.</small></div><button class="btn" id="gDelete">Delete…</button></div>` : ''}`;
+      const del = $('#gDelete');
+      if (del) del.onclick = async () => {
+        if (!confirm('Delete Postura’s settings and break history and close Postura?')) return;
+        try { await post('delete-data'); toast('Done. Postura is closing.'); setTimeout(() => window.close(), 800); } catch (e) { toast(e.message); }
+      };
       const a = $('#gAuto');
-      a.disabled = !st.installed;
-      a.addEventListener('change', () => setSettings({ autostart: a.checked }));
+      if (a) {
+        a.disabled = !st.installed;
+        a.addEventListener('change', () => setSettings({ autostart: a.checked }));
+      }
+      const so = $('#gStartupOpen');
+      if (so) so.onclick = () => post('startup-settings').catch(e => toast(e.message));
       wireSeg(root, 'gTheme', v => setSettings({ theme: v }));
       wireSeg(root, 'gMotion', v => setSettings({ motion: v }));
       // poka-yoke: the switch only exists where setup found supported hardware and installed the engine
@@ -62,10 +73,14 @@ export default {
              <select id="gModel" class="sel" disabled><option>${esc(ai.model)}</option></select></div>
            ${ai.engine === 'flm' ? `<div class="item"><div class="t"><b>NPU power mode</b><small>Performance and turbo answer fastest. A change restarts the AI engine (a few seconds).</small></div>
              <select id="gPmode" class="sel">${['powersaver', 'balanced', 'performance', 'turbo'].map(m => `<option${m === (S.settings.aiPmode || 'performance') ? ' selected' : ''}>${m}</option>`).join('')}</select></div>` : ''}`
-        : `<div class="item"><div class="t"><b>AI assistant</b><small>Not set up on this PC. It needs an AMD Ryzen AI 300/400/Max or an Intel Core Ultra processor with an NPU, chosen in the Postura installer. Everything else in Postura works without it.</small></div>${toggleHTML('gAi', false)}</div>`;
+        : `<div class="item"><div class="t"><b>AI assistant</b><small>Not set up on this PC. It needs an AMD Ryzen AI 300/400/Max or an Intel Core Ultra processor with an NPU, chosen in the Postura ${st.packaged ? 'setup' : 'installer'}. Everything else in Postura works without it.</small></div>${st.packaged ? '<button class="btn" id="gAiSetup">Set up…</button>' : toggleHTML('gAi', false)}</div>`;
+      const asu = $('#gAiSetup');
+      if (asu) asu.onclick = () => post('ai-setup').then(() => toast('The setup window is opening')).catch(e => toast(e.message));
       const g = $('#gAi');
-      g.disabled = !ai.available;
-      g.addEventListener('change', () => setSettings({ aiEnabled: g.checked }));
+      if (g) {
+        g.disabled = !ai.available;
+        g.addEventListener('change', () => setSettings({ aiEnabled: g.checked }));
+      }
       const pm = $('#gPmode');
       if (pm) pm.addEventListener('change', () => setSettings({ aiPmode: pm.value }));
       if (ai.available) loadModels(ai);

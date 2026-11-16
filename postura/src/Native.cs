@@ -41,6 +41,52 @@ namespace Postura
             return SHQueryUserNotificationState(out s) == 0 ? s : 5;
         }
 
+        [DllImport("powrprof.dll")] static extern uint CallNtPowerInformation(int level, IntPtr inBuf, uint inLen, out uint outBuf, uint outLen);
+
+        /// <summary>True while some app keeps the screen on (a video player, a call, a presentation): Windows' own
+        /// "display required" flag, the same one that stops the screen saver.</summary>
+        public static bool DisplayRequired()
+        {
+            try { uint s; return CallNtPowerInformation(16, IntPtr.Zero, 0, out s, 4) == 0 && (s & 2) != 0; }   // SystemExecutionState, ES_DISPLAY_REQUIRED
+            catch { return false; }
+        }
+
+        static DateTime callChecked = DateTime.MinValue;
+        static bool inCall;
+
+        /// <summary>True while an app uses the microphone (a call or a recording). Windows keeps this per user for its
+        /// own privacy indicator: LastUsedTimeStop is 0 while the microphone is in use. Asked at most every 5 s.</summary>
+        public static bool InCall()
+        {
+            if ((DateTime.Now - callChecked).TotalSeconds < 5) return inCall;
+            callChecked = DateTime.Now;
+            bool on = false;
+            try
+            {
+                using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone"))
+                {
+                    on = MicUsed(k);
+                    if (!on && k != null) using (var n = k.OpenSubKey("NonPackaged")) on = MicUsed(n);
+                }
+            }
+            catch { }
+            inCall = on;
+            return on;
+        }
+
+        static bool MicUsed(RegistryKey parent)
+        {
+            if (parent == null) return false;
+            foreach (var name in parent.GetSubKeyNames())
+                using (var k = parent.OpenSubKey(name))
+                {
+                    if (k == null) continue;
+                    object start = k.GetValue("LastUsedTimeStart"), stop = k.GetValue("LastUsedTimeStop");
+                    if (start is long && stop is long && (long)start != 0 && (long)stop == 0) return true;
+                }
+            return false;
+        }
+
         public static bool DarkMode()
         {
             try

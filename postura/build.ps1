@@ -2,8 +2,9 @@
 # Usage:  pwsh -File postura\build.ps1 [-Release] [-Dev]
 #   -Release  also copies the installer to Documents\Apps by Alex (Postura-Setup.exe)
 #   -Dev      developer build (--web, --serve, --break-test work) into build\dev-<edition>; never for release
+#   -OutDir   builds one edition's Postura.exe into this folder instead of build\<edition> (the MSIX build uses it)
 #   APPS_OUTPUT_SUBFOLDER (env) changes where -Release copies to (default "Apps by Alex")
-param([ValidateSet('public')][string]$Edition = 'public', [switch]$Release, [switch]$Dev)
+param([ValidateSet('public')][string]$Edition = 'public', [switch]$Release, [switch]$Dev, [string]$OutDir)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $fw = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
@@ -18,13 +19,14 @@ $webFiles = Get-ChildItem (Join-Path $root 'web') -File
 $refs = @('System.dll', 'System.Core.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.Web.Extensions.dll',
     'Microsoft.CSharp.dll', "$fw\System.Runtime.dll", "$fw\System.Runtime.WindowsRuntime.dll",
     "$fw\System.Runtime.InteropServices.WindowsRuntime.dll", "$wm\Windows.Foundation.winmd", "$wm\Windows.Data.winmd",
-    "$wm\Windows.UI.winmd") | ForEach-Object { "/r:$_" }
+    "$wm\Windows.UI.winmd", "$wm\Windows.ApplicationModel.winmd") | ForEach-Object { "/r:$_" }
+if ($OutDir -and $Edition -eq 'all') { throw '-OutDir needs a single -Edition' }
 
 $docs = [Environment]::GetFolderPath('MyDocuments')
 $editions = @('public')
 foreach ($ed in $editions) {
     $art = Join-Path $root "build\$ed"
-    $outDir = if ($Dev) { Join-Path $root "build\dev-$ed" } else { $art }
+    $outDir = if ($OutDir) { $OutDir } elseif ($Dev) { Join-Path $root "build\dev-$ed" } else { $art }
     New-Item -ItemType Directory -Force $outDir | Out-Null
     $out = Join-Path $outDir 'Postura.exe'
     $cargs = @('/nologo', '/optimize+', '/codepage:65001', '/target:winexe', '/platform:anycpu', "/out:$out",

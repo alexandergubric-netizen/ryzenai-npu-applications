@@ -31,15 +31,19 @@ namespace Postura
         {
             try
             {
-                using (var s = typeof(Toast).Assembly.GetManifestResourceStream("web/icon.png"))
-                using (var f = File.Create(LogoPath)) s.CopyTo(f);
-                using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\AppUserModelId\" + Edition.Aumid))
+                // packaged: the package supplies the notification identity (AUMID, name, logo) and the postura: link
+                if (!Program.Packaged)
                 {
-                    k.SetValue("DisplayName", "Postura");
-                    k.SetValue("IconUri", LogoPath);
+                    using (var s = typeof(Toast).Assembly.GetManifestResourceStream("web/icon.png"))
+                    using (var f = File.Create(LogoPath)) s.CopyTo(f);
+                    using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\AppUserModelId\" + Edition.Aumid))
+                    {
+                        k.SetValue("DisplayName", "Postura");
+                        k.SetValue("IconUri", LogoPath);
+                    }
+                    RegisterProtocol();
+                    Native.SetCurrentProcessExplicitAppUserModelID(Edition.Aumid);
                 }
-                RegisterProtocol();
-                Native.SetCurrentProcessExplicitAppUserModelID(Edition.Aumid);
                 Ready = true;
             }
             catch (Exception e) { Program.Log("toast init: " + e.Message); Ready = false; }
@@ -63,9 +67,19 @@ namespace Postura
         public static string Setting()
         {
             // Windows throws "element not found" for an app that has never shown a notification: that means allowed
-            try { return ToastNotificationManager.CreateToastNotifier(Edition.Aumid).Setting.ToString(); }
+            try { return Notifier().Setting.ToString(); }
             catch { return "Enabled"; }
         }
+
+        /// <summary>A packaged app is known to Windows by its package; only the .exe version names an AUMID.</summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static ToastNotifier Notifier()
+        {
+            return Program.Packaged ? ToastNotificationManager.CreateToastNotifier() : ToastNotificationManager.CreateToastNotifier(Edition.Aumid);
+        }
+
+        /// <summary>The picture in the notification: the package's own logo file, or the copy in the data folder.</summary>
+        static string LogoUri { get { return Program.Packaged ? "ms-appx:///Assets/notify-logo.png" : new Uri(LogoPath).AbsoluteUri; } }
 
         /// <summary>True while Windows reports it holds banners back: full screen (2, 7), presentation (4), busy (3) or
         /// the quiet hour after a first sign-in (6). Windows 11's Do not disturb is NOT reported here, which is why the
@@ -86,13 +100,19 @@ namespace Postura
         public static bool ShowEye(int seconds)
         {
             string xml = Build("Time to rest your eyes", "Look at something about 6 metres (20 ft) away for " + seconds + " seconds.",
-                Act("Start " + seconds + " s timer", "eye-start") + Act("Snooze 5 min", "eye-snooze"), "eye-start");
+                Act("Start " + seconds + " s timer", "eye-start") + Act("Snooze " + Store.Int("snoozeMinutes") + " min", "eye-snooze"), "eye-start");
             return Show(xml, ref lastEyeTag, "eye");
         }
 
-        public static bool ShowMove(int minutes)
+        public static bool ShowMove(string kind, int minutes)
         {
-            string xml = Build("Time to move", "You've been at the screen for " + minutes + " minutes. Stand up, stretch, or switch your desk to standing.",
+            string xml = kind == "stand"
+                ? Build("Time to stand", "You've been sitting for " + minutes + " minutes of screen time. Raise your desk and stand for a while.",
+                    Act("I'm standing", "move-done") + Act("Snooze " + Store.Int("snoozeMinutes") + " min", "move-snooze"), "noop")
+                : kind == "sit"
+                ? Build("Time to sit again", "You've been standing for " + minutes + " minutes. Sit down with your back against the chair.",
+                    Act("OK", "noop"), "noop")
+                : Build("Time to move", "You've been at the screen for " + minutes + " minutes. Stand up, stretch, or switch your desk to standing.",
                 Act("Show stretches", "move-open") + Act("Done", "move-done"), "move-open");
             return Show(xml, ref lastMoveTag, "move");
         }
@@ -102,7 +122,7 @@ namespace Postura
             return "<toast launch='" + Scheme + ":" + launch + "' activationType='protocol' duration='long'><visual><binding template='ToastGeneric'>" +
                    "<text>" + X(title) + "</text><text>" + X(body) + "</text>" +
                    "<text placement='attribution'>" + X(Ai.Enabled ? Edition.Assistant + " · Postura" : "Postura") + "</text>" +
-                   "<image placement='appLogoOverride' hint-crop='none' src='" + X(new Uri(LogoPath).AbsoluteUri) + "'/>" +
+                   "<image placement='appLogoOverride' hint-crop='none' src='" + X(LogoUri) + "'/>" +
                    "</binding></visual>" +
                    "<actions>" + actions + "</actions>" +
                    (Store.Bool("sound") ? "<audio src='ms-winsoundevent:Notification.Reminder'/>" : "<audio silent='true'/>") +
@@ -122,14 +142,20 @@ namespace Postura
             string setting = Setting();
             if (setting != "Enabled") { LastResult = "off"; LastDetail = setting; return false; }
             // the previous reminder of this kind leaves the notification centre, the new one pops up fresh
-            if (lastTag != null) try { ToastNotificationManager.History.Remove(lastTag, "postura", Edition.Aumid); } catch { }
+            if (lastTag != null)
+                try
+                {
+                    if (Program.Packaged) ToastNotificationManager.History.Remove(lastTag, "postura");
+                    else ToastNotificationManager.History.Remove(lastTag, "postura", Edition.Aumid);
+                }
+                catch { }
             string tag = kind + "-" + (++counter) + "-" + DateTime.Now.ToString("HHmmss");
             var doc = new XmlDocument();
             doc.LoadXml(xml);
             var t = new ToastNotification(doc) { Tag = tag, Group = "postura" };
             t.ExpirationTime = DateTimeOffset.Now.AddMinutes(kind == "eye" ? 10 : 30);
             t.Failed += (s, e) => { Program.Log("toast failed: " + e.ErrorCode); LastResult = "failed"; LastDetail = e.ErrorCode.Message; };
-            ToastNotificationManager.CreateToastNotifier(Edition.Aumid).Show(t);
+            Notifier().Show(t);
             lastTag = tag;
             LastResult = Quiet() ? "quiet" : "shown";
             LastDetail = "";

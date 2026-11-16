@@ -8,14 +8,19 @@ an `editions\<id>\org.js` file that replaces `web\org.js`; they are not part of 
 
 ## What it does
 
-- **Today** — live countdown to the next eye break, the four essentials, today's breaks and screen time.
+- **Today** — a living landscape: the sun crosses the sky as the eye-break clock runs, the sky follows the time of day,
+  and today's bamboo grows one segment per eye break. Below it: the four essentials, today's numbers and your progress
+  (week or 30 days, streak, share of reminders followed).
 - **Posture** — a side-view model in the guide's style. Move chair, desk and screen; the figure's neck, elbows
   and feet respond and the five guide checks turn green/amber/red. *Fit to me* computes heights from your body height.
 - **Lighting** — a room you can rearrange (window side/behind screen/behind you, daylight, lamp) with a lux meter
   and glare warnings. Target: 500 lux, no glare. The lux value is an orientational calculation, not a measurement —
   measuring needs a calibrated light meter.
-- **Eye breaks** — 20-20-20 explained with animations, a full-window guided break, and the reminder settings.
-- **Keep moving** — sit-stand rhythm planner, optional move reminders, six animated desk stretches with timers.
+- **Eye breaks** — 20-20-20 explained with animations, a full-window guided break, and the reminder settings
+  (any interval from 5 to 120 minutes, snooze length). A video or a call counts as screen time, and reminders wait
+  until a call is over (Postura only asks Windows whether the microphone is in use; it never listens).
+- **Keep moving** — move reminders or a sit-stand timer that follows your rhythm ("Time to stand", "Time to sit again"),
+  and six animated desk stretches with timers. Moves and stretches are counted.
 - **Workspace** — the guide's sit-stand desk, chair, easy-reach and cabling advice.
 - **Self-check** — the guide's eight-point checklist with progress.
 - **Ask Theo** (only on AI PCs, see below) — answers ergonomics questions with a local model grounded in the

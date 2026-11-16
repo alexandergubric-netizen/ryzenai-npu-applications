@@ -22,7 +22,9 @@ namespace Postura
         static readonly Dictionary<string, object> Defaults = new Dictionary<string, object> {
             { "eyeEnabled", true }, { "eyeInterval", 20 }, { "eyeSeconds", 20 },
             { "idleReset", true }, { "skipBusy", true }, { "sound", false }, { "autoTimer", false }, { "remindStyle", "both" },
+            { "watchCounts", true }, { "quietCalls", true }, { "snoozeMinutes", 5 },
             { "moveEnabled", false }, { "moveInterval", 45 },
+            { "sitStand", false }, { "sitMinutes", 45 }, { "standMinutes", 15 },
             { "autostart", true }, { "theme", "system" }, { "motion", "full" },
             // set by the installer after its hardware check; "" = this PC runs Postura without the assistant
             { "aiEngine", "" }, { "aiModel", "" }, { "aiEnabled", false }, { "aiPmode", "performance" }
@@ -58,6 +60,8 @@ namespace Postura
                     if (!s.ContainsKey("remindStyle") && Bool("autoTimer")) settings["remindStyle"] = "card";
                     ui = Dict(root, "ui");
                     days = Dict(root, "days");
+                    object pu;
+                    if (root.TryGetValue("pausedUntil", out pu) && pu is string) pausedUntil = (string)pu;
                 }
                 catch (Exception e) { Program.Log("load settings: " + e.Message); }
             }
@@ -82,6 +86,9 @@ namespace Postura
                     case "eyeInterval": return i >= 5 && i <= 120;
                     case "eyeSeconds": return i >= 10 && i <= 120;
                     case "moveInterval": return i >= 15 && i <= 180;
+                    case "snoozeMinutes": return i >= 1 && i <= 30;
+                    case "sitMinutes": return i >= 15 && i <= 120;
+                    case "standMinutes": return i >= 5 && i <= 60;
                 }
                 return true;
             }
@@ -131,9 +138,25 @@ namespace Postura
             }
         }
 
+        static string pausedUntil = "";
+        /// <summary>"Pause reminders until …" survives a restart of Postura or the PC ("" = not paused).</summary>
+        public static DateTime PausedUntil
+        {
+            get
+            {
+                DateTime t;
+                lock (Lock) return DateTime.TryParse(pausedUntil, null, System.Globalization.DateTimeStyles.RoundtripKind, out t) ? t : DateTime.MinValue;
+            }
+            set
+            {
+                string s = value <= DateTime.Now ? "" : value.ToString("s");
+                lock (Lock) { if (s != pausedUntil) { pausedUntil = s; dirty = true; } }
+            }
+        }
+
         static string Today { get { return DateTime.Now.ToString("yyyy-MM-dd"); } }
 
-        /// <summary>Add to today's counters: eyeTaken, eyeReminded, moveReminded, activeSec.</summary>
+        /// <summary>Add to today's counters: eyeTaken, eyeReminded, moveReminded, moveTaken, stretches, activeSec.</summary>
         public static void Count(string key, int n = 1)
         {
             lock (Lock)
@@ -162,7 +185,8 @@ namespace Postura
                     { "settings", new Dictionary<string, object>(settings) },
                     { "ui", new Dictionary<string, object>(ui) },
                     { "today", Dict(days, Today) },
-                    { "week", recent }
+                    { "week", recent },
+                    { "history", new Dictionary<string, object>(days) }   // up to 40 days, for the progress chart
                 };
             }
         }
@@ -174,13 +198,17 @@ namespace Postura
         }
 
         /// <summary>Write if something changed (called every second by the reminder loop, and on exit with force).</summary>
+        static bool discarded;
+        /// <summary>The data folder is being deleted ("Delete my data"): never write it again.</summary>
+        public static void Discard() { lock (Lock) { discarded = true; dirty = false; } }
+
         public static void Save(bool force = false)
         {
             string json;
             lock (Lock)
             {
-                if (!dirty || (!force && (DateTime.Now - lastSave).TotalSeconds < 5)) return;
-                json = Ser.Serialize(new Dictionary<string, object> { { "settings", settings }, { "ui", ui }, { "days", days } });
+                if (discarded || !dirty || (!force && (DateTime.Now - lastSave).TotalSeconds < 5)) return;
+                json = Ser.Serialize(new Dictionary<string, object> { { "settings", settings }, { "ui", ui }, { "days", days }, { "pausedUntil", pausedUntil } });
                 dirty = false;
                 lastSave = DateTime.Now;
             }

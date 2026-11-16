@@ -1,5 +1,5 @@
 // Keep moving: sit-stand rhythm, the optional move reminder, and six animated desk stretches.
-import { S, onState, post, setSettings, toggleHTML, segHTML, wireSeg, toast, ui, setUi } from './core.js';
+import { S, onState, post, setSettings, toggleHTML, segHTML, wireSeg, toast, clock, refresh } from './core.js';
 import { icon } from './icons.js';
 
 // front-view figure; groups carry the animation classes
@@ -34,7 +34,6 @@ const STRETCHES = [
 export default {
   id: 'move', title: 'Keep moving', icon: 'move', color: 'var(--c-move)',
   mount(root) {
-    const sitMin = ui('rhythm', 45);
     root.innerHTML = `
       <div class="page-head"><div class="grow">
         <div class="kicker" style="--k:var(--c-move)">Keep moving</div>
@@ -43,14 +42,19 @@ export default {
       </div></div>
       <div class="grid" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)">
         <div class="card">
-          <div class="row"><h2 style="flex:1">Your day, in rhythm</h2>${segHTML('rh', [[30, 'Sit 30'], [45, 'Sit 45'], [60, 'Sit 60 min']], sitMin)}</div>
-          <p class="muted small">Sit, then stand for about 15 minutes — take calls standing, walk to a colleague, refill your water.</p>
+          <h2>Your day, in rhythm</h2>
+          <p class="muted small">Sit, then stand for a while — take calls standing, walk to a colleague, refill your water.</p>
+          <div class="row wrap mt-s" style="gap:10px 18px">
+            <div class="row" style="gap:8px"><span class="small muted">Sit</span><span id="rhSit"></span></div>
+            <div class="row" style="gap:8px"><span class="small muted">Stand</span><span id="rhStand"></span></div>
+          </div>
           <div class="rhythm" id="rhythm"></div>
           <div class="bar-labels" style="margin-top:6px"><span style="text-align:left">9:00</span><span>11:00</span><span>13:00</span><span>15:00</span><span style="text-align:right">17:00</span></div>
           <div class="row mt" style="gap:18px">
             <div class="chip"><span class="dot" style="background:var(--c-posture)"></span>Sitting</div>
             <div class="chip"><span class="dot" style="background:var(--c-move)"></span>Standing / moving</div>
           </div>
+          <div class="callout mt" id="mStatus" style="padding:10px 14px"></div>
         </div>
         <div class="list" id="mopts"></div>
       </div>
@@ -64,33 +68,51 @@ export default {
       <div class="callout mt">${icon('info')}<div class="muted">Stretch gently and never into pain. If something hurts, stop and ask for advice.</div></div>`;
     const $ = s => root.querySelector(s);
 
-    const rhythm = m => {
+    // an example working day drawn from the chosen sit and stand minutes (a longer walk around midday)
+    const rhythm = (m, up) => {
       const blocks = [];
       let t = 0;
       while (t < 480) {
         const sit = Math.min(m, 480 - t); blocks.push(['sit', sit]); t += sit;
         if (t >= 480) break;
-        const st = Math.min(t >= 210 && t < 270 ? 45 : 15, 480 - t); blocks.push(['stand', st]); t += st;  // lunch walk around midday
+        const st = Math.min(t >= 210 && t < 270 ? Math.max(45, up) : up, 480 - t); blocks.push(['stand', st]); t += st;
       }
       $('#rhythm').innerHTML = blocks.map(([k, d]) => `<div style="flex:${d};background:${k === 'sit' ? 'var(--c-posture)' : 'var(--c-move)'};border-right:2px solid var(--card)" title="${k === 'sit' ? 'Sit' : 'Stand / move'} ${d} min">${d >= 30 ? (k === 'sit' ? 'sit' : 'stand') : ''}</div>`).join('');
     };
-    rhythm(sitMin);
-    wireSeg(root, 'rh', v => { rhythm(+v); setUi({ rhythm: +v }); });
+
+    const status = st => {
+      const s = st.settings, t = st.today || {};
+      const counts = `Today: ${t.moveTaken || 0} of ${t.moveReminded || 0} move reminders followed · ${t.stretches || 0} stretch${(t.stretches || 0) === 1 ? '' : 'es'} done`;
+      const left = clock(st.nextMove);
+      const now = !s.moveEnabled ? 'The move reminder is off.'
+        : st.paused ? 'Reminders are paused.'
+        : st.away ? 'You are away — the clock restarts when you are back.'
+        : s.sitStand ? (st.standing ? `<b>Standing.</b> Sit down again in ${left} of screen time.` : `<b>Sitting.</b> Time to stand in ${left} of screen time.`)
+        : `Next move break in ${left} of screen time.`;
+      $('#mStatus').innerHTML = `<div>${now} <span class="muted">${counts}</span></div>`;
+    };
 
     let lastKey = '';
     const unsub = onState(st => {
-      const s = st.settings, key = s.moveEnabled + '/' + s.moveInterval;
+      status(st);
+      const s = st.settings, key = [s.moveEnabled, s.moveInterval, s.sitStand, s.sitMinutes, s.standMinutes].join('/');
       if (key === lastKey) return;
       lastKey = key;
+      $('#rhSit').innerHTML = segHTML('rhS', [[30, '30'], [45, '45'], [60, '60 min']], s.sitMinutes);
+      $('#rhStand').innerHTML = segHTML('rhU', [[10, '10'], [15, '15'], [20, '20'], [30, '30 min']], s.standMinutes);
+      wireSeg(root, 'rhS', v => setSettings({ sitMinutes: +v }));
+      wireSeg(root, 'rhU', v => setSettings({ standMinutes: +v }));
+      rhythm(s.sitMinutes, s.standMinutes);
       $('#mopts').innerHTML = `
-        <div class="item"><div class="t"><b>Move reminder</b><small>A notification to stand up or stretch</small></div>${toggleHTML('mOn', s.moveEnabled)}</div>
-        <div class="item"><div class="t"><b>Every</b></div>${segHTML('mInt', [[30, '30'], [45, '45'], [60, '60'], [90, '90 min']], s.moveInterval)}</div>
-        <div class="item"><div class="t"><b>Try it</b><small>Shows the move notification now</small></div><button class="btn" id="mTest">${icon('send')}Test</button></div>`;
+        <div class="item"><div class="t"><b>Move reminder</b><small>Shown like the eye reminder: notification, card or both</small></div>${toggleHTML('mOn', s.moveEnabled)}</div>
+        <div class="item"><div class="t"><b>Remind me to</b><small>${s.sitStand ? `Follows your rhythm: sit ${s.sitMinutes} min, stand ${s.standMinutes} min` : 'A break to stand up, stretch or walk'}</small></div>${segHTML('mMode', [['move', 'Move'], ['sitstand', 'Sit / stand']], s.sitStand ? 'sitstand' : 'move')}</div>
+        ${s.sitStand ? '' : `<div class="item"><div class="t"><b>Every</b></div>${segHTML('mInt', [[30, '30'], [45, '45'], [60, '60'], [90, '90 min']], s.moveInterval)}</div>`}
+        <div class="item"><div class="t"><b>Try it</b><small>Shows the ${s.sitStand ? '“time to stand”' : 'move'} reminder now</small></div><button class="btn" id="mTest">${icon('send')}Test</button></div>`;
       $('#mOn').addEventListener('change', e => setSettings({ moveEnabled: e.target.checked }));
-      wireSeg(root, 'mInt', v => setSettings({ moveInterval: +v }));
+      wireSeg(root, 'mMode', v => setSettings({ sitStand: v === 'sitstand' }));
+      if (!s.sitStand) wireSeg(root, 'mInt', v => setSettings({ moveInterval: +v }));
       $('#mTest').onclick = async () => { await post('test-move'); toast('Sent — look at the bottom-right of your screen'); };
     });
-
     // guided stretch timers
     const timers = new Map();
     root.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
@@ -107,6 +129,7 @@ export default {
         if (left <= 0) {
           clearInterval(timers.get(s.id)); timers.delete(s.id);
           b.innerHTML = `${icon('play')}${s.secs} s`;
+          post('stretch-done').then(refresh).catch(() => {});   // counted, and it answers a waiting move reminder
           setTimeout(() => { tEl.hidden = true; }, 2500);
         }
       };

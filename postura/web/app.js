@@ -1,5 +1,5 @@
 // Shell: sidebar, router, splash and the state poll (which doubles as the "window is open" ping).
-import { S, refresh, applyLook, go, reduced, onState } from './core.js';
+import { S, refresh, applyLook, go, reduced, onState, ui, setUi } from './core.js';
 import { logoSVG, avatarSVG, ASSISTANT, EDITION } from './logo.js';
 import { icon } from './icons.js';
 import { EDITION_LABEL } from './content.js';
@@ -79,6 +79,9 @@ document.addEventListener('keydown', e => {
 
 await refresh();
 applyLook();
+// the sidebar folds to icons; the choice is remembered
+$('shell').classList.toggle('slim', !!ui('slimSide', false));
+$('sideToggle').addEventListener('click', () => setUi({ slimSide: $('shell').classList.toggle('slim') }));
 buildNav();
 route();
 onState(() => {

@@ -24,7 +24,6 @@ namespace Postura
         static Process window;
         static BreakHud hud;
         static string webDir;
-        static string balloonAction;
         static string lastTip = "";
         static System.Windows.Forms.Timer tick, housekeeping;
 
@@ -56,14 +55,17 @@ namespace Postura
             var h = marshal.Handle;   // force the handle so BeginInvoke works before any window exists
 
             Store.Load();
+            // MSIX: removing and reinstalling the app resets Windows' sign-in task while the saved choice stays "on".
+            // Only "Disabled" is put right; DisabledByUser / DisabledByPolicy are the user's or the administrator's decision.
+            if (Program.Packaged && Store.Bool("autostart") && PackagedApp.StartupState() == "Disabled") PackagedApp.SetStartup(true);
             Toast.Init();
             Reminder.EyeDue += () => EyeDue(false);
-            Reminder.MoveDue += MoveDue;
+            Reminder.MoveDue += kind => MoveDue(kind);
+            Reminder.PausedUntil = Store.PausedUntil;   // a pause set before Postura (or the PC) restarted still holds
 
             tray = new NotifyIcon { Icon = TrayIcon(), Text = "Postura", Visible = true };
             tray.ContextMenuStrip = BuildMenu();
             tray.MouseClick += (s, e) => { if (e.Button == MouseButtons.Left) OpenWindow(null); };
-            tray.BalloonTipClicked += (s, e) => { if (balloonAction != null) ToastAction(balloonAction); };
 
             tick = new System.Windows.Forms.Timer { Interval = 1000 };
             tick.Tick += (s, e) => { Reminder.Tick(); UpdateTip(); Store.Save(); };
@@ -128,19 +130,51 @@ namespace Postura
             bool toast = style != "card" && Toast.ShowEye(Store.Int("eyeSeconds"));
             bool card = style != "notify" || !toast || Toast.Quiet();
             if (card) StartEyeBreak(true);
+            if (card && (!toast || Toast.Quiet())) Chime();   // a shown notification makes its own sound
             return toast && card ? "both" : toast ? "notification" : "card";
         }
 
-        public static void MoveDue()
+        /// <summary>A move reminder ("move"), or the sit-stand rhythm asking to stand up ("stand") or sit down ("sit").
+        /// Same choice of notification / card / both as the eye reminder.</summary>
+        public static string MoveDue(string kind)
         {
-            if (!Toast.ShowMove(Store.Int("moveInterval")) || Toast.Quiet())
-                Balloon("Time to move", "Stand up, stretch, or switch your desk to standing. Click for stretches.", "move-open");
+            int minutes = Store.Int(kind == "stand" ? "sitMinutes" : kind == "sit" ? "standMinutes" : "moveInterval");
+            string style = Store.Str("remindStyle");
+            bool toast = style != "card" && Toast.ShowMove(kind, minutes);
+            bool card = style != "notify" || !toast || Toast.Quiet();
+            if (card && hud != null && !hud.IsDisposed) card = false;   // an eye break is on screen: it goes first
+            if (card)
+            {
+                hud = new BreakHud(0, true, kind, minutes);
+                hud.Picked += pick =>
+                {
+                    if (kind == "move") { if (pick == "primary") OpenWindow("move"); else Reminder.MoveDone(); }
+                    else if (kind == "stand") { if (pick == "primary") Reminder.MoveDone(); else Reminder.MoveSnooze(); }
+                };
+                hud.FormClosed += (s, e) => { hud = null; };
+                hud.Show();
+                if (!toast || Toast.Quiet()) Chime();
+            }
+            return toast && card ? "both" : toast ? "notification" : card ? "card" : "none";
         }
 
-        static void Balloon(string title, string body, string action)
+        static System.Media.SoundPlayer chime;
+
+        /// <summary>The reminder sound for Postura's own card (Windows plays the notification's sound itself).</summary>
+        static void Chime()
         {
-            balloonAction = action;
-            tray.ShowBalloonTip(10000, title, body, ToolTipIcon.None);
+            if (!Store.Bool("sound")) return;
+            try
+            {
+                if (chime == null)
+                {
+                    string wav = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"Media\Windows Notify Calendar.wav");
+                    if (!File.Exists(wav)) { System.Media.SystemSounds.Asterisk.Play(); return; }
+                    chime = new System.Media.SoundPlayer(wav);
+                }
+                chime.Play();
+            }
+            catch { }
         }
 
         static void ToastAction(string a)
@@ -148,9 +182,11 @@ namespace Postura
             switch (a)
             {
                 case "eye-start": StartEyeBreak(); break;
-                case "eye-snooze": Reminder.Snooze(300); break;
+                case "eye-snooze": Reminder.Snooze(); break;
                 case "move-open": OpenWindow("move"); break;
-                case "move-done": break;
+                case "move-done": Reminder.MoveDone(); break;
+                case "move-snooze": Reminder.MoveSnooze(); break;
+                case "noop": break;
                 default: OpenWindow(null); break;
             }
         }
@@ -160,12 +196,17 @@ namespace Postura
 
         public static void StartEyeBreak(bool prompt)
         {
-            if (hud != null && !hud.IsDisposed) return;
+            if (hud != null && !hud.IsDisposed)
+            {
+                if (hud.IsEye) return;
+                hud.Close();   // a move card makes room for the eye break
+            }
             Reminder.BreakOpen = true;
             hud = new BreakHud(Store.Int("eyeSeconds"), prompt);
             hud.Completed += () => Reminder.EyeBreakDone();
-            hud.Snoozed += () => Reminder.Snooze(300);
-            hud.FormClosed += (s, e) => { Reminder.BreakOpen = false; hud = null; };
+            hud.Snoozed += () => Reminder.Snooze();
+            var mine = hud;
+            hud.FormClosed += (s, e) => { Reminder.BreakOpen = false; if (hud == mine) hud = null; };
             hud.Show();
         }
 
@@ -174,7 +215,9 @@ namespace Postura
         public static void SettingsChanged(List<string> changed)
         {
             if (changed.Contains("autostart")) Setup.SetAutostart(Store.Bool("autostart"));
-            if (changed.Contains("eyeInterval") || changed.Contains("eyeEnabled")) Reminder.Restart();
+            if (changed.Contains("eyeInterval") || changed.Contains("eyeEnabled")) Reminder.RestartEye();
+            if (changed.Contains("moveInterval") || changed.Contains("moveEnabled") || changed.Contains("sitStand") ||
+                changed.Contains("sitMinutes") || changed.Contains("standMinutes")) Reminder.RestartMove();
             if (changed.Contains("aiEnabled") && !Store.Bool("aiEnabled")) { Ai.Stop(); Ai.State = "off"; }   // free the NPU now
             if (changed.Contains("aiPmode")) Ai.ApplyPmode();     // restarts FastFlowLM unless another app uses it
         }
@@ -192,6 +235,7 @@ namespace Postura
                 return Reminder.PausedUntil.Date > DateTime.Today ? "Reminders paused until tomorrow" : "Reminders paused until " + Reminder.PausedUntil.ToString("HH:mm");
             if (!Store.Bool("eyeEnabled")) return "Eye reminders are off";
             if (Reminder.Away) return "Away: the clock restarts when you're back";
+            if (Reminder.Holding) return "In a call: reminders wait until it ends";
             return "Next eye break in " + Clock(Reminder.NextEye);
         }
 
@@ -369,13 +413,20 @@ namespace Postura
             d["eyeIntervalSec"] = Reminder.EyeIntervalSec;
             d["moveIntervalSec"] = Reminder.MoveIntervalSec;
             d["paused"] = Reminder.Paused;
-            d["pausedUntil"] = Reminder.Paused ? Reminder.PausedUntil.ToString("yyyy-MM-ddTHH:mm:ss") : null;
+            d["pausedUntil"] = Reminder.Paused ? Reminder.PausedUntil.ToString("s") /* the same in every language; HH:mm:ss became HH.mm.ss in Danish */ : null;
             d["away"] = Reminder.Away;
             d["breakOpen"] = Reminder.BreakOpen;
+            d["watching"] = Reminder.Watching;
+            d["inCall"] = Reminder.InCall;
+            d["holding"] = Reminder.Holding;
+            d["standing"] = Reminder.Standing;
             d["toast"] = Toast.Ready;
             d["ai"] = AiState();
             d["installed"] = Setup.IsInstalledCopy;
-            d["autostartActual"] = Setup.AutostartEnabled();
+            d["packaged"] = Program.Packaged;
+            string startup = PackagedApp.StartupState();
+            d["startupState"] = startup;
+            d["autostartActual"] = Program.Packaged ? PackagedApp.IsEnabled(startup) : Setup.AutostartEnabled();
             var s = server;
             if (s != null && s.PendingPage != null) { d["goto"] = s.PendingPage; s.PendingPage = null; }
             return d;

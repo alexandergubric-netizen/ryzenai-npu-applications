@@ -38,8 +38,9 @@ export default {
           </div>`).join('')}</div>
         <div class="stack">
           <div class="card" style="text-align:center">
-            <div style="width:170px;height:170px;margin:6px auto;position:relative" id="ring">${ringSVG(0, { size: 170, stroke: 9, color: MK ? 'var(--accent)' : 'var(--c-check)' })}
-              <div style="position:absolute;inset:0;display:grid;place-items:center"><div><b style="font:700 38px var(--font-display)" id="n">0</b><span class="muted"> / ${CHECKLIST.length}</span></div></div></div>
+            <svg width="0" height="0" style="position:absolute"><filter id="brush" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="1" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+            <div class="enso" style="width:170px;height:170px;margin:6px auto;position:relative" id="ring">${ringSVG(0, { size: 170, stroke: 9, color: MK ? 'var(--accent)' : 'var(--c-check)' })}
+              <div style="position:absolute;inset:0;display:grid;place-items:center"><div><b style="font:600 38px var(--font-num)" id="n">0</b><span class="muted"> / ${CHECKLIST.length}</span></div></div></div>
             <div id="msg" class="muted"></div>
             <div class="small muted mt-s" id="when"></div>
             <button class="btn mt" id="reset">Start over</button>

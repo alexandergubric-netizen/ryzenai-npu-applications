@@ -69,6 +69,8 @@
           <label class="toggle"><input type="checkbox" id="oStart" checked><span class="sw"></span></label></div>
         <div class="item"><div class="t"><b>Desktop shortcut</b></div>
           <label class="toggle"><input type="checkbox" id="oDesk" checked><span class="sw"></span></label></div>
+        <div class="item" id="oLegacyRow" hidden><div class="t"><b>An older Postura is installed on this PC</b><small>It came from the .exe installer. Remove it in Settings → Apps so only one Postura runs. Your settings and break history are kept.</small></div>
+          <button class="btn" id="oLegacyOpen" type="button">Open Apps settings</button></div>
       </div>
 
       <div class="card ai-card" id="aiCard">
@@ -126,6 +128,19 @@
     (info.installed ? ` · replaces ${info.installedName || 'Postura'} ${info.installed}` : '');
   if (info.installed) $('bGo').textContent = info.installed === info.version ? 'Reinstall' : 'Update';
   if (info.test) $('where').textContent += ' (test mode: downloads are simulated, no shortcuts or registry changes)';
+  if (info.packaged) {   // Windows app (MSIX): Windows installed it and made the shortcuts; the choices left are sign-in start and the assistant
+    document.title = 'Welcome to Postura';
+    $('title').firstChild.textContent = 'Welcome to Postura ';
+    $('oStart').closest('.item').hidden = true; $('oDesk').closest('.item').hidden = true;
+    $('oLegacyRow').hidden = !info.legacy;
+    $('oLegacyOpen').onclick = () => post('setup-apps-settings').catch(() => {});
+    $('where').textContent = 'Remove Postura any time in Settings → Apps. Your settings and break history stay on this PC until you delete them in Postura → Settings.';
+    $('bGo').textContent = 'Get started';
+    $('s2t').textContent = 'Setting up…';
+    document.querySelector('#s3 h2').lastChild.textContent = ' Postura is ready';
+    if (info.startupState === 'DisabledByUser' || info.startupState === 'DisabledByPolicy')
+      $('oAuto').closest('.item').querySelector('small').textContent = 'Windows has this switched off for Postura (Settings → Apps → Startup)';
+  }
 
   // ---- AI assistant: poka-yoke — the switch unlocks only when every requirement passes
   $('aiTitle').innerHTML = `AI assistant — Ask ${esc(ASSISTANT)} ` + (ai.supported ? '<span class="pill ok">Supported</span>' : '<span class="pill no">Not available</span>');
@@ -156,6 +171,7 @@
     oAi.checked = ai.installed && ai.models.length > 0;
     $('oModel').disabled = !oAi.checked;
     sub();
+    if (ai.engine === 'flm') $('aiSub').insertAdjacentHTML('afterend', `<small>Already installed? Postura uses FastFlowLM as it is and never reinstalls it. To install it yourself, see ${esc(info.flmPage)}.</small>`);
     $('aiNote').textContent = ai.engine === 'foundry'
       ? 'Intel NPUs in many laptops (for example Core Ultra 5 225U) are modest, so a small 1.5B model is used — quick and good enough for short ergonomics answers. By installing it you accept the Microsoft Foundry Local license terms.'
       : 'After setup, the assistant runs on the NPU only while you use it. You can switch it off later in Postura → Settings.';
@@ -189,7 +205,7 @@
       do { await new Promise(r => setTimeout(r, 500)); p = await get('setup-progress'); renderSteps(p); } while (p.running);
       if (p.error) throw new Error(p.error);
       $('art').classList.remove('grow-anim');
-      const where = [$('oStart').checked && 'in Start', $('oDesk').checked && 'on your desktop'].filter(Boolean).join(' and ');
+      const where = info.packaged ? 'in Start' : [$('oStart').checked && 'in Start', $('oDesk').checked && 'on your desktop'].filter(Boolean).join(' and ');
       $('doneText').textContent = (where ? `You'll find Postura ${where}. ` : '') +
         ($('oAuto').checked ? 'It starts with Windows, so your eye-break reminders keep working.' : 'Open it whenever you want reminders running.') +
         ' Uninstall any time from Settings → Apps.';

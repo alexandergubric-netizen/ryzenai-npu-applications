@@ -1,6 +1,7 @@
 // 20-20-20: what it means (three animated tiles), a full-window guided break, and the reminder settings.
 import { S, onState, get, post, setSettings, liveNextEye, clock, toggleHTML, segHTML, wireSeg, toast, refresh, reduced, ASSISTANT } from './core.js';
 import { icon } from './icons.js';
+import { sceneSVG, placeSun, growBamboo, phase } from './scene.js';
 
 const TILES = `
   <div class="grid g3 rule3">
@@ -28,20 +29,19 @@ const TILES = `
 export function focusBreak(seconds, onDone) {
   const ov = document.createElement('div');
   ov.className = 'focus-overlay';
+  ov.dataset.phase = phase();
+  // the same landscape as on Today, filling the window; slow rings around the count set a breathing pace
   ov.innerHTML = `
-    <svg class="land" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice">
-      <circle cx="930" cy="90" r="48" fill="var(--sun)" opacity=".9"/>
-      <g class="drift1"><path d="M-100 260 Q150 170 400 240 T900 220 T1400 250 V400 H-100Z" fill="var(--hill1)"/>
-        <g transform="translate(560 180)"><rect x="-4" y="10" width="8" height="40" fill="var(--tree)"/><circle r="26" fill="var(--tree)"/></g></g>
-      <g class="drift2"><path d="M-100 320 Q250 260 600 315 T1400 300 V400 H-100Z" fill="var(--hill2)"/></g>
-    </svg>
+    ${sceneSVG('fo')}
     <button class="btn fo-close" id="foClose">${icon('x')}Stop</button>
     <div class="fo-center">
       <h2 id="foT">Look at something far away</h2>
-      <div class="fo-count" id="foN">${seconds}</div>
+      <div class="fo-ring"><div class="fo-count" id="foN">${seconds}</div></div>
       <p id="foS">About 6 metres (20 ft) — out of the window is perfect. Blink slowly.</p>
     </div>`;
   document.body.appendChild(ov);
+  placeSun(ov.querySelector('.scene-art'), .74);   // to the side, clear of the words
+  growBamboo(ov.querySelector('.scene-art'), (S.state && S.state.today && S.state.today.eyeTaken) || 0);
   const t0 = Date.now();
   const lines = ['Blink slowly…', 'Relax your shoulders…', 'Let your eyes soften…', 'Breathe out slowly…'];
   const iv = setInterval(() => {
@@ -51,10 +51,13 @@ export function focusBreak(seconds, onDone) {
     if (left <= 0) {
       clearInterval(iv);
       ov.querySelector('#foT').textContent = 'Eyes rested';
-      ov.querySelector('#foN').innerHTML = `<span style="color:var(--ok)">✓</span>`;
-      ov.querySelector('#foS').textContent = 'Nice. See you in 20 minutes.';
+      ov.querySelector('#foN').textContent = '✓';
+      ov.querySelector('#foS').textContent = 'Nice. Your bamboo just grew a segment.';
+      ov.classList.add('done');
+      // the new segment grows here, where the break was taken
+      growBamboo(ov.querySelector('.scene-art'), ((S.state && S.state.today && S.state.today.eyeTaken) || 0) + 1);
       onDone && onDone();
-      setTimeout(() => ov.remove(), 1800);
+      setTimeout(() => { ov.classList.add('out'); setTimeout(() => ov.remove(), 500); }, 2600);
     }
   }, 250);
   ov.querySelector('#foClose').onclick = () => { clearInterval(iv); ov.remove(); };
@@ -73,7 +76,7 @@ export default {
       <div class="grid mt" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)">
         <div class="card stack" style="gap:12px">
           <div class="row"><div class="tip" style="flex:1"><div class="ti" style="--c:var(--c-eyes)">${icon('bell')}</div><div><h3 id="stT">Next eye break</h3><div class="muted" id="stS"></div></div></div>
-            <b style="font:700 30px var(--font-display);font-variant-numeric:tabular-nums" id="stN"></b></div>
+            <b style="font:600 30px var(--font-num);font-variant-numeric:tabular-nums" id="stN"></b></div>
           <div class="row wrap">
             <button class="btn primary" id="tryNow">${icon('play')}Try a break now</button>
             <button class="btn" id="floatNow">${icon('eye')}Floating timer</button>
@@ -97,14 +100,22 @@ export default {
       const s = st.settings;
       $('#opts').innerHTML = `
         <div class="item"><div class="t"><b>Eye-break reminders</b><small>A notification every ${s.eyeInterval} minutes of screen time</small></div>${toggleHTML('oOn', s.eyeEnabled)}</div>
-        <div class="item"><div class="t"><b>Remind me every</b></div>${segHTML('oInt', [[15, '15'], [20, '20'], [30, '30'], [45, '45'], [60, '60 min']], s.eyeInterval)}</div>
+        <div class="item"><div class="t"><b>Remind me every</b><small>Or type 5 to 120</small></div>${segHTML('oInt', [[15, '15'], [20, '20'], [30, '30'], [45, '45'], [60, '60']], s.eyeInterval)}<input class="numin" id="oIntN" type="number" min="5" max="120" step="1" value="${s.eyeInterval}" aria-label="Minutes between eye breaks"><span class="muted small">min</span></div>
         <div class="item"><div class="t"><b>Break length</b></div>${segHTML('oSec', [[20, '20 s'], [30, '30 s'], [60, '60 s']], s.eyeSeconds)}</div>
+        <div class="item"><div class="t"><b>Snooze for</b></div>${segHTML('oSnz', [[5, '5'], [10, '10'], [15, '15 min']], s.snoozeMinutes)}</div>
         <div class="item"><div class="t"><b>Restart the clock when I’m away</b><small>5 minutes without keyboard or mouse counts as a break</small></div>${toggleHTML('oIdle', s.idleReset)}</div>
-        <div class="item"><div class="t"><b>Quiet during full-screen apps</b><small>Presentations, video calls in full screen, games</small></div>${toggleHTML('oBusy', s.skipBusy)}</div>
-        <div class="item"><div class="t"><b>Notification sound</b></div>${toggleHTML('oSnd', s.sound)}</div>
+        <div class="item"><div class="t"><b>Videos and calls are screen time</b><small>While a video plays or a call runs you are not counted as away, even without touching the keyboard</small></div>${toggleHTML('oWatch', s.watchCounts)}</div>
+        <div class="item"><div class="t"><b>Wait until my call ends</b><small>No reminders while an app uses the microphone; the reminder comes right after</small></div>${toggleHTML('oCalls', s.quietCalls)}</div>
+        <div class="item"><div class="t"><b>Quiet during full-screen apps</b><small>Presentations, full-screen video, games</small></div>${toggleHTML('oBusy', s.skipBusy)}</div>
+        <div class="item"><div class="t"><b>Reminder sound</b><small>For the notification and for Postura’s card</small></div>${toggleHTML('oSnd', s.sound)}</div>
         <div class="item"><div class="t"><b>Remind me with</b><small>The card is Postura’s own window in the corner. Windows’ Do not disturb can hide notifications without telling apps, so <b>Both</b> is the safest choice</small></div>${segHTML('oStyle', [['notify', 'Notification'], ['card', 'Card'], ['both', 'Both']], s.remindStyle)}</div>`;
       const bind = (id, key) => $('#' + id).addEventListener('change', e => setSettings({ [key]: e.target.checked }));
-      bind('oOn', 'eyeEnabled'); bind('oIdle', 'idleReset'); bind('oBusy', 'skipBusy'); bind('oSnd', 'sound');
+      bind('oOn', 'eyeEnabled'); bind('oIdle', 'idleReset'); bind('oBusy', 'skipBusy'); bind('oSnd', 'sound'); bind('oWatch', 'watchCounts'); bind('oCalls', 'quietCalls');
+      wireSeg(root, 'oSnz', v => setSettings({ snoozeMinutes: +v }));
+      $('#oIntN').addEventListener('change', e => {
+        const n = Math.round(+e.target.value);
+        if (n >= 5 && n <= 120) setSettings({ eyeInterval: n }); else { e.target.value = s.eyeInterval; toast('Choose 5 to 120 minutes'); }
+      });
       wireSeg(root, 'oStyle', v => setSettings({ remindStyle: v }));
       wireSeg(root, 'oInt', v => setSettings({ eyeInterval: +v }));
       wireSeg(root, 'oSec', v => setSettings({ eyeSeconds: +v }));
@@ -117,7 +128,8 @@ export default {
       const s = st.settings;
       $('#stN').textContent = !s.eyeEnabled ? 'Off' : st.paused ? '—' : clock(liveNextEye());
       $('#stS').textContent = !s.eyeEnabled ? 'Reminders are switched off' : st.paused ? `Paused until ${new Date(st.pausedUntil).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` :
-        st.away ? 'You seem to be away — the clock restarts when you’re back' : `of screen time · ${(st.today.eyeTaken || 0)} breaks today`;
+        st.away ? 'You seem to be away — the clock restarts when you’re back' :
+        st.holding ? 'You’re in a call — the reminder waits until it ends' : st.watching ? 'Watching counts as screen time' : `of screen time · ${(st.today.eyeTaken || 0)} breaks today`;
       $('#pause').innerHTML = st.paused ? `${icon('play')}Resume` : `${icon('pause')}Pause 1 h`;
       const key = JSON.stringify(s);
       if (key !== lastKey) { lastKey = key; opts(st); $('#secs').textContent = s.eyeSeconds; }

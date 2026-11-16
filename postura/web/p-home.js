@@ -1,6 +1,7 @@
 // Today: the live 20-20-20 ring, the four essentials from the guide, and today's numbers.
-import { S, onState, post, go, liveNextEye, clock, duration, ringSVG, setRing, toast, refresh, ASSISTANT, esc, ui } from './core.js';
-import { avatarSVG, stripesSVG } from './logo.js';
+import { S, onState, post, go, liveNextEye, clock, duration, ringSVG, setRing, toast, refresh, ASSISTANT, esc, ui, setUi, segHTML, wireSeg } from './core.js';
+import { avatarSVG } from './logo.js';
+import { sceneSVG, placeSun, growBamboo, phase } from './scene.js';
 import { icon } from './icons.js';
 import { ESSENTIALS, CHECKLIST, COMMITMENT, MK } from './content.js';
 
@@ -55,37 +56,40 @@ export default {
   id: 'home', title: 'Today', icon: 'home', color: 'var(--c-home)',
   mount(root) {
     root.innerHTML = `
-      <div class="hero">
-        ${stripesSVG()}
-        <div class="big-ring" id="ring">${ringSVG(0, { color: MK ? 'var(--lime)' : 'var(--c-eyes)', track: MK ? 'rgba(255,255,255,.18)' : 'var(--line-2)' })}
-          <div class="center"><div><b id="next">--:--</b><span id="nextLbl">until eye break</span></div></div></div>
-        <div>
-          <div class="kicker" style="--k:${MK ? 'var(--lime)' : 'var(--c-eyes)'}">20-20-20</div>
+      <div class="hero" id="hero" data-phase="${phase()}">
+        ${sceneSVG()}
+        <div class="hero-text">
           <h2 id="greet">${greeting()}</h2>
-          <p class="muted mt-s" id="heroText" style="max-width:420px"></p>
+          <div class="hero-clock"><b id="next">--:--</b><span id="nextLbl">until your eyes rest</span></div>
+          <p class="hero-sub" id="heroText"></p>
           <div class="row wrap mt">
             <button class="btn primary big" id="restNow">${icon('eye')}Rest my eyes now</button>
             <button class="btn big" id="pauseBtn">${icon('pause')}<span>Pause 1 hour</span></button>
           </div>
         </div>
-        <div class="row" style="align-items:flex-end;gap:12px;max-width:290px">
-          <div class="card" style="padding:12px 14px;font-size:13px;color:var(--text)" id="bubble"></div>
-          <div style="width:58px;flex:none;cursor:default" id="heroAv" title="Ask ${ASSISTANT}">${avatarSVG()}</div>
-        </div>
+        <div class="hero-note" id="grown"></div>
       </div>
+      <div class="hero-tip"><span class="av" id="heroAv" title="Ask ${ASSISTANT}">${avatarSVG()}</span><span id="bubble"></span></div>
 
       <h2 style="font-size:18px;margin:26px 0 12px">The four essentials</h2>
-      <div class="grid g4">${ESSENTIALS.map(e => `
-        <div class="card ess" data-go="${e.page}" style="--c:${e.color}">
+      <div class="grid g4" style="gap:22px">${ESSENTIALS.map(e => `
+        <div class="ess" data-go="${e.page}" style="--c:${e.color}">
           <div class="art">${ART[e.id]}</div>
           <b>${e.title}</b><span>${e.text}</span>
         </div>`).join('')}</div>
 
-      <div class="grid g4 mt" style="grid-template-columns:1fr 1fr 1fr 1.4fr">
-        <div class="card stat"><span>Eye breaks today</span><b id="sTaken">0</b><span id="sTakenOf"></span></div>
-        <div class="card stat"><span>Screen time today</span><b id="sActive">0 min</b><span>counted only while you use the PC</span></div>
-        <div class="card stat" data-go="check" style="cursor:default"><span>Workspace self-check</span><b id="sCheck">0 / 8</b><span id="sCheckLbl">Take a minute to review</span></div>
-        <div class="card"><span class="muted small">Eye breaks this week</span><div class="bars mt-s" id="bars"></div><div class="bar-labels" id="barLbl"></div></div>
+      <div class="card stats mt" style="margin-top:28px">
+        <div class="stat"><span>Eye breaks today</span><b id="sTaken">0</b><span id="sTakenOf"></span></div>
+        <div class="stat"><span>Screen time today</span><b id="sActive">0 min</b><span>counted only while you use the PC</span></div>
+        <div class="stat" data-go="move" style="cursor:default"><span>Moves today</span><b id="sMoves">0</b><span id="sMovesLbl"></span></div>
+        <div class="stat" data-go="check" style="cursor:default"><span>Workspace self-check</span><b id="sCheck">0 / 8</b><span id="sCheckLbl">Take a minute to review</span></div>
+      </div>
+
+      <div class="card mt">
+        <div class="row"><h2 style="flex:1;font-size:18px">Your progress</h2>${segHTML('pRange', [[7, 'Week'], [30, '30 days']], ui('progressDays', 7))}</div>
+        <div class="progress-chips mt-s" id="pChips"></div>
+        <div class="bars tall mt" id="bars"></div><div class="bar-labels" id="barLbl"></div>
+        <div class="small muted mt-s">Your grove: one stalk a day, as tall as the eye breaks you took. Hover a stalk for that day’s screen time, moves and stretches.</div>
       </div>
 
       <div class="callout mt">${icon('heart')}<div><b>Our commitment.</b> <span class="muted">${COMMITMENT}</span></div></div>
@@ -104,15 +108,60 @@ export default {
       refresh();
     });
 
-    const ringSvg = $('#ring svg');
+    // the last 7 or 30 days from the kept history (Postura keeps 40 days)
+    let range = +ui('progressDays', 7) === 30 ? 30 : 7;
+    const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let progressKey = '';
+    const progress = st => {
+      const hist = st.history || {};
+      // drawn again only when the numbers change, so the grove grows in once and then stands still
+      const key = range + JSON.stringify(hist);
+      if (key === progressKey) return;
+      progressKey = key;
+      const at = i => { const d = new Date(); d.setDate(d.getDate() - i); return d; };
+      const days = [];
+      for (let i = range - 1; i >= 0; i--) { const d = at(i); days.push([d, hist[dayKey(d)] || {}]); }
+      const sum = k => days.reduce((n, [, d]) => n + (d[k] || 0), 0);
+      const taken = sum('eyeTaken'), reminded = sum('eyeReminded'), used = days.filter(([, d]) => (d.activeSec || 0) > 0).length;
+      // days in a row with at least one eye break, ending today (or yesterday, while today is still young)
+      let streak = 0;
+      for (let i = 0; i < 40; i++) {
+        const n = (hist[dayKey(at(i))] || {}).eyeTaken || 0;
+        if (n > 0) streak++; else if (i > 0) break;
+      }
+      const chips = [
+        streak > 1 ? `<span class="chip ok">${streak}-day streak</span>` : '',
+        `<span class="chip">${taken} eye break${taken === 1 ? '' : 's'}</span>`,
+        reminded ? `<span class="chip">${Math.min(100, Math.round(taken / reminded * 100))}% of reminders followed</span>` : '',
+        used ? `<span class="chip">${duration(sum('activeSec') / used)} screen time a day</span>` : '',
+        sum('moveTaken') + sum('stretches') ? `<span class="chip">${sum('moveTaken')} moves · ${sum('stretches')} stretches</span>` : '',
+      ].filter(Boolean);
+      $('#pChips').innerHTML = chips.join('');
+      const max = Math.max(4, ...days.map(([, d]) => d.eyeTaken || 0));
+      $('#bars').className = 'bars tall grove mt' + (range === 30 ? ' month' : '');
+      $('#bars').innerHTML = days.map(([day, d], i) => {
+        const n = d.eyeTaken || 0;
+        const tip = `${day.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}: ${n} of ${d.eyeReminded || 0} eye breaks · ${duration(d.activeSec || 0)} screen time · ${d.moveTaken || 0} moves · ${d.stretches || 0} stretches`;
+        return `<div class="${i === days.length - 1 ? 'today' : ''}${n ? '' : ' none'}" style="height:${Math.max(4, n / max * 100)}%;--i:${i}" title="${tip}"></div>`;
+      }).join('');
+      $('#barLbl').style.gap = range === 30 ? '3px' : '';
+      $('#barLbl').innerHTML = days.map(([day], i) => `<span>${range === 7 ? day.toLocaleDateString([], { weekday: 'narrow' }) : (day.getDate() === 1 || i === 0 || day.getDay() === 1 ? day.getDate() : '')}</span>`).join('');
+    };
+    wireSeg(root, 'pRange', v => { range = +v; setUi({ progressDays: range }); if (S.state) progress(S.state); });
+
+    // the scene: the sun crosses the sky as the eye-break clock runs, the sky follows the hour
+    const hero = $('#hero'), art = hero.querySelector('.scene-art');
     const tickNext = () => {
       const st = S.state;
       if (!st) return;
       const n = liveNextEye();
       const on = st.settings.eyeEnabled;
       $('#next').textContent = !on ? 'Off' : st.paused ? 'Paused' : clock(n);
-      $('#nextLbl').textContent = !on ? 'eye reminders' : st.paused ? 'reminders' : st.away ? 'you are away' : 'until eye break';
-      setRing(ringSvg, on && !st.paused ? 1 - n / st.eyeIntervalSec : 0);
+      $('#nextLbl').textContent = !on ? 'eye reminders' : st.paused ? 'reminders' : st.away ? 'you are away' : st.holding ? 'waits for your call' : 'until your eyes rest';
+      const ph = phase();
+      if (hero.dataset.phase !== ph) hero.dataset.phase = ph;
+      hero.classList.toggle('resting', !on || st.paused);
+      placeSun(art, on && !st.paused ? 1 - n / st.eyeIntervalSec : .5);
     };
     const timer = setInterval(tickNext, 1000);
 
@@ -121,6 +170,8 @@ export default {
       const t = st.today || {};
       const taken = t.eyeTaken || 0, reminded = t.eyeReminded || 0;
       $('#sTaken').textContent = taken;
+      growBamboo(art, taken);
+      $('#grown').textContent = taken ? `Today’s bamboo: ${taken} segment${taken === 1 ? '' : 's'}, one for each eye break` : 'Your bamboo grows a segment with every eye break';
       $('#sTakenOf').textContent = reminded ? `of ${reminded} reminders` : 'none due yet';
       $('#sActive').textContent = duration(t.activeSec || 0);
       const chk = ui('check', {}).items || {};
@@ -130,12 +181,12 @@ export default {
       $('#pauseBtn span').textContent = st.paused ? 'Resume reminders' : 'Pause 1 hour';
       $('#heroText').textContent = st.paused
         ? `Reminders are paused until ${new Date(st.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
-        : `Every ${st.settings.eyeInterval} minutes of screen time, look about 6 metres (20 ft) away for ${st.settings.eyeSeconds} seconds. I'll remind you in the notification area.`;
-      const days = Object.entries(st.week || {});
-      const max = Math.max(4, ...days.map(([, d]) => d.eyeTaken || 0));
-      $('#bars').innerHTML = days.map(([k, d], i) =>
-        `<div class="${i === days.length - 1 ? 'today' : ''}" style="height:${Math.max(4, (d.eyeTaken || 0) / max * 100)}%" title="${k}: ${d.eyeTaken || 0} breaks"></div>`).join('');
-      $('#barLbl').innerHTML = days.map(([k]) => `<span>${new Date(k + 'T12:00').toLocaleDateString([], { weekday: 'narrow' })}</span>`).join('');
+        : `Every ${st.settings.eyeInterval} minutes of screen time, look about 6 metres (20 ft) away for ${st.settings.eyeSeconds} seconds. The sun sets when it is time.`;
+      const moves = (t.moveTaken || 0) + (t.stretches || 0);
+      $('#sMoves').textContent = moves;
+      $('#sMovesLbl').textContent = !st.settings.moveEnabled && !moves ? 'Move reminder is off' :
+        `${t.moveTaken || 0} of ${t.moveReminded || 0} reminders · ${t.stretches || 0} stretch${(t.stretches || 0) === 1 ? '' : 'es'}`;
+      progress(st);
       const tips = [
         taken === 0 ? (st.ai && st.ai.enabled ? `Hi, I'm ${esc(ASSISTANT)}. Try one eye break now — it takes 20 seconds.` : 'Try one eye break now — it takes 20 seconds.') : `${taken} eye break${taken === 1 ? '' : 's'} today. Your eyes say thank you.`,
         n < CHECKLIST.length ? `Your self-check is at ${n} of ${CHECKLIST.length}. Want to finish it?` : 'Your workspace self-check is complete.',
